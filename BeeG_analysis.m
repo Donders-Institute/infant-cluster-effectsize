@@ -33,6 +33,8 @@ ii = 1;
 % And find the headerfile and eeg file
 
 cfg.dataset = [bidsroot filesep sub{ii} filesep 'eeg' filesep sub{ii} '_task-audiovisual_eeg.vhdr' ];
+hdr         = ft_read_header(cfg.dataset);
+
 
 %% Now we can extract the trials from the events.tsv
 
@@ -42,17 +44,23 @@ cfg.dataset = [bidsroot filesep sub{ii} filesep 'eeg' filesep sub{ii} '_task-aud
 trl                 = raw(2:end, 3:8);
 
 
-% Then re-define trials as in the published work: 500 ms pre-stim of bee or
-% cue, 2000 ms 
+% Then re-define trials. We are only interested in bees and cues
+% And take a time window of -500 ms and + 1000 ms
 
 stimuli             = {'bee', 'update-cue', 'no-update-cue'};
 str                 = string(trl(:,5));
 index_stimuli       = ismember(str, stimuli);
-trl_cueonly         = trl(index_stimuli, :); 
+trl_cueonly         = trl(index_stimuli, :); % now only bee and cue trials are left
 
+pre_stim_samples    = round(0.5 * hdr.Fs); % The pre-stim period is 0.5 s
+post_stim_samples   = round(1 * hdr.Fs);   % The post-stim period is 1 s
+trl_new             = trl_cueonly;
+trl_new(:,1)        = num2cell(str2double(trl_cueonly(:,1))-pre_stim_samples); % We extract the pre stim samples from begsample (the first colum of trl_cueonly) to find the new begsample
+trl_new(:,2)        = num2cell(str2double(trl_cueonly(:,1))+post_stim_samples); % We add the post stim samples to begsample to find the new endsample
+trl_new(:,3)        = num2cell(str2double(trl_cueonly(:,3)));
 
-% Then call fieldtrip's definetrial function
-cfg = ft_definetrial(cfg);
+% Then add the new trials to cfg
+cfg.trl             = trl_new;
 
 %% Now, we perform pre-processing only on the episodes that are defined as trials
 
