@@ -31,9 +31,9 @@ subjectlist         = raw(2:end, 1);
 
 for ii=1:size(subjectlist,1)
     sub = subjectlist{ii};
-    BeeG_singlesubject_analysis(sub);
+    do_singlesubject_analysis(sub);
 end
 
 %% Group analysis
 
-BeeG_do_group_analysis(subjectlist);
+do_group_analysis(subjectlist);
