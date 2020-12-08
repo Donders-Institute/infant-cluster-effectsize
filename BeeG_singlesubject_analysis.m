@@ -1,8 +1,8 @@
-%% Analysis script for the BeeG dataset
+%% Analysis script to analyze single subjects of the BeeG dataset
+
+function BeeG_singlesubject_analysis(sub)
 
 %% Input of the dataset
-
-clear;
 
 user = getenv('USER');
 if isempty(user)
@@ -12,40 +12,33 @@ end
 switch user
   case 'Didi'    
     data_dir    = 'C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset\BIDS';
-    output_dir  = 'C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset\results';
+    output_dir  = ['C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset\results' filesep sub];    
   case 'roboos'
     data_dir    = '/Volumes/Samsung T3/data/di.dcc.DSC_2020.00134_473/bids';
-    output_dir  = '/Volumes/Samsung T3/data/di.dcc.DSC_2020.00134_473/results';
+    output_dir  = ['/Volumes/Samsung T3/data/di.dcc.DSC_2020.00134_473/results' filesep sub];
   otherwise
     errror('you have to specify the local directories of the data and this code');
 end
 
 addpath(data_dir)
+cd(data_dir)
 
-if ~exist(output_dir, 'dir')
-    mkdir(output_dir);
+if exist(output_dir, 'dir')
+    rmdir(otuput_dir, 's');    
 end
 
-cd(data_dir)
+mkdir(output_dir);
+
 
 %% Find the data and headerfiles
 
-% Read the participants tsv to find subject info
-[data, header, raw] = tsvread([data_dir filesep 'participants.tsv']);
-sub = raw(2:end, 1);
-
-% Then we start looping over subjects
-ii = 1;
-
-% And find the headerfile and eeg file
-
-cfg.dataset = [data_dir filesep sub{ii} filesep 'eeg' filesep sub{ii} '_task-audiovisual_eeg.vhdr' ];
+cfg.dataset = [data_dir filesep sub filesep 'eeg' filesep sub '_task-audiovisual_eeg.vhdr' ];
 hdr         = ft_read_header(cfg.dataset);
 
 
 %% Now we can extract the trials from the events.tsv
 
-[data, header, raw] = tsvread([data_dir filesep sub{ii} filesep 'eeg' filesep sub{ii} '_task-audiovisual_events.tsv']);
+[data, header, raw] = tsvread([data_dir filesep sub filesep 'eeg' filesep sub '_task-audiovisual_events.tsv']);
 
 % The variable raw now contains the eeg tsv info:
 % Column 1: onset
