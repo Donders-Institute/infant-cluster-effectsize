@@ -1,6 +1,6 @@
 %% Analysis script to analyze single subjects of the BeeG dataset
 
-function BeeG_singlesubject_analysis(sub)
+function do_singlesubject_analysis(sub)
 
 %% Input of the dataset
 
@@ -24,7 +24,7 @@ addpath(data_dir)
 cd(data_dir)
 
 if exist(output_dir, 'dir')
-    rmdir(otuput_dir, 's');    
+    rmdir(output_dir, 's');    
 end
 
 mkdir(output_dir);
@@ -104,48 +104,120 @@ data                    = ft_preprocessing(cfg);
 
 %% Now let's look at the data with databrowser
 
-cfg = [];  % use only default options
-ft_databrowser(cfg, data);
+% cfg = [];  % use only default options
+% ft_databrowser(cfg, data);
 
 %% Data rejection
 
 % For now we don't do it, first we analyze the data without artefact
 % rejection
 
-%% Calculate the ERPs
+%% Re-referencing
+
+% Note that Ezgi did this after trial rejection, which I did not do yet
+
+cfg                   = [];
+cfg.channel           = 'all';  
+cfg.reref             = 'yes';
+cfg.implicitref       = 'M1';            % the implicit (non-recorded) reference channel is added to the data representation
+cfg.refchannel        = {'M1', 'TP10'}; % the average of these channels is used as the new reference, note that channel corresponds to the right mastoid (M2)
+data                  = ft_preprocessing(cfg, data);
+
+%% Calculate the ERPs for expected (bee) and unexpected (cue) stimuli
 
 % We first perform timelockanalysis on those trials belonging to the
 % expected condition (i.e. the bees)
-cfg           = [];
-cfg.trials    = find(ismember(string(data.trialinfo{:,2}), 'bee'));
-expected      = ft_timelockanalysis(cfg, data);
+cfg                = [];
+cfg.trials         = find(ismember(string(data.trialinfo{:,2}), 'bee'));
+expected           = ft_timelockanalysis(cfg, data);
 
 % And to those of the unexpected condition (i.e. the cues)
 cfg = [];
-cfg.trials    = find(ismember(string(data.trialinfo{:,2}), {'update-cue', 'no-update-cue'}));
-unexpected    = ft_timelockanalysis(cfg, data);
+cfg.trials         = find(ismember(string(data.trialinfo{:,2}), {'update-cue', 'no-update-cue'}));
+unexpected         = ft_timelockanalysis(cfg, data);
 
 % And we plot the ERP's
-cfg = [];
-cfg.layout = 'elec1010.lay';
-cfg.interactive = 'yes';
-cfg.showoutline = 'yes';
+cfg                = [];
+cfg.layout         = 'elec1010.lay';
+cfg.interactive    = 'yes';
+cfg.showoutline    = 'yes';
+cfg.showlabels     = 'yes';
 ft_multiplotER(cfg, expected, unexpected)
 
 % Finally we save the data
 save(fullfile(output_dir, 'timelock_expected.mat'), 'expected');
 save(fullfile(output_dir, 'timelock_unexpected.mat'), 'unexpected');
-savefig(gcf, fullfile(output_dir, 'topoplot_expected_unexpected'))
+savefig(gcf, fullfile(output_dir, 'topoplot_expected_unexpected'));
 
 %% Then look at the difference ERP waves between expected and unexpected stimuli
 
-cfg = [];
-cfg.operation = 'subtract';
-cfg.parameter = 'avg';
-difference = ft_math(cfg, expected, unexpected);
+% cfg = [];
+% cfg.operation = 'subtract';
+% cfg.parameter = 'avg';
+% difference = ft_math(cfg, expected, unexpected);
+% 
+% cfg = [];
+% cfg.layout      = 'elec1010.lay';
+% cfg.interactive = 'yes';
+% cfg.showoutline = 'yes';
+% ft_multiplotER(cfg, difference);
 
-cfg = [];
-cfg.layout      = 'elec1010.lay';
-cfg.interactive = 'yes';
-cfg.showoutline = 'yes';
-ft_multiplotER(cfg, difference);
+%% Calculate the ERPs for expected (bee) stimuli over number of repetitions
+
+% Initiate vectors
+repetition = zeros(size(data.trialinfo, 1),1);
+count = 0;
+
+for tr = 1:size(data.trialinfo, 1)    
+    if tr < size(data.trialinfo, 1)
+        if ismember(string(data.trialinfo{tr,2}), 'bee') && ismember(string(data.trialinfo{tr + 1,2}), 'bee')
+            % this bee is followed by another bee of the same type        
+            count = count+1;
+            repetition(tr,1) = count; 
+        elseif ismember(string(data.trialinfo{tr,2}), 'bee') && ~ismember(string(data.trialinfo{tr + 1,2}), 'bee')
+            % This is the last bee of this repetition of bees
+            count = count+1;
+            repetition(tr,1) = count;
+            count = 0; % we reset count back 
+        end
+    elseif ismember(string(data.trialinfo{tr,2}), 'bee')
+        % This is the last bee of the experiment
+        count = count+1;
+        repetition(tr,1) = count;
+    end
+end
+
+% Now repetition contains the "repetition number" of the bee, i.e. how many
+% times this specific stimulus has been shown uninterrupted by unexpted stimuli 
+
+cfg                = [];
+cfg.trials         = find(repetition==1);
+repetition1        = ft_timelockanalysis(cfg, data); 
+%repetition1 contains the average of trials where the bee is shown for the first time
+
+cfg                = [];
+cfg.trials         = find(repetition==2);
+repetition2        = ft_timelockanalysis(cfg, data);
+%repetition2 contains the average of trials where the bee is shown for the second time
+
+cfg                = [];
+cfg.trials         = find(repetition==3);
+repetition3        = ft_timelockanalysis(cfg, data);
+%repetition3 contains the average of trials where the bee is shown for the third time
+
+% And we plot the ERP's
+cfg                = [];
+cfg.layout         = 'elec1010.lay';
+cfg.interactive    = 'yes';
+cfg.showoutline    = 'yes';
+cfg.showlabels     = 'yes';
+ft_multiplotER(cfg, repetition1, repetition2, repetition3)
+
+% Now we save the data
+save(fullfile(output_dir, 'timelock_repetition1.mat'), 'repetition1');
+save(fullfile(output_dir, 'timelock_repetition2.mat'), 'repetition2');
+save(fullfile(output_dir, 'timelock_repetition3.mat'), 'repetition3');
+savefig(gcf, fullfile(output_dir, 'topoplot_repetitions_expected'))
+
+
+close all

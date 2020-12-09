@@ -29,9 +29,17 @@ subjectlist         = raw(2:end, 1);
 
 %% Loop over single subjects to do analysis
 
-for ii=1:size(subjectlist,1)
+% for ii=1:size(subjectlist,1)
+for ii=1:5
     sub = subjectlist{ii};
     do_singlesubject_analysis(sub);
+    
+    %Display step of analysis
+    fprintf('\n')
+    disp('------------------')
+    disp (['Analysis Subject: ' sub])
+    disp('------------------')
+    fprintf('\n')
 end
 
 %% Group analysis
