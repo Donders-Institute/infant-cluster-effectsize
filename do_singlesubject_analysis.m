@@ -65,10 +65,16 @@ pre_stim_samples    = round(0.5 * hdr.Fs); % The pre-stim period is 0.5 s
 post_stim_samples   = round(1 * hdr.Fs);   % The post-stim period is 1 s
 
 % We create a trl_new array containing the new begsample and endsample values
-
 trl_new             = trl_cueonly;
+
+% If the first trial starts to early, we remove it
+if trl_new{1,1} < pre_stim_samples
+    trl_new = trl_new{2:end, :};
+end
+
 trl_new{:,1}        = trl_cueonly{:,1}-pre_stim_samples; % We extract the pre stim samples from begsample (the first colum of trl_cueonly) to find the new begsample
 trl_new{:,2}        = trl_cueonly{:,1}+post_stim_samples; % We add the post stim samples to begsample to find the new endsample
+trl_new{:,3}        = - pre_stim_samples;
 
 % Then add the new trials to cfg
 cfg.trl             = trl_new;
