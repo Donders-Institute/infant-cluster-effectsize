@@ -29,6 +29,10 @@ end
 
 mkdir(output_dir);
 
+%% Create a subject detail file to be filled with suject details should we need them
+
+sub_file    = [];
+save(fullfile(output_dir, [sub '.mat']), 'sub_file');
 
 %% Find the data and headerfiles
 
@@ -38,32 +42,18 @@ hdr         = ft_read_header(cfg.dataset);
 
 %% Now we can extract the trials from the events.tsv
 
-[data, header, raw] = tsvread([data_dir filesep sub filesep 'eeg' filesep sub '_task-audiovisual_events.tsv']);
+t              = readtable([data_dir filesep sub filesep 'eeg' filesep sub '_task-audiovisual_events.tsv'], 'FileType', 'text');
+trl            = t( : , 3:8);
 
 % The variable raw now contains the eeg tsv info:
-% Column 1: onset
-% Column 2: duration
-% Column 3: begsample
-% Column 4: endsample
-% Column 5: offset
-% Column 6: marker number
-% Column 7: stimulus
-% Column 8: location of the bee
+% Column 1: begsample
+% Column 2: endsample
+% Column 3: offset
+% Column 4: marker number
+% Column 5: stimulus
+% Column 6: location of the bee
 
-% We first convert it to a table for better incorporation with ft
-% functions, we also leave out onset and duration for compatibility with ft
-% functions
-
-begsample = str2double(raw(2:end,3));
-endsample = str2double(raw(2:end,4));
-offset    = str2double(raw(2:end,5));
-marker    = raw(2:end,6);
-stimulus  = raw(2:end,7);
-location  = raw(2:end,8);
-trl       = table(begsample, endsample, offset, marker, stimulus, location);
-
-
-% Then re-define trials. We are only interested in bees and cues
+% Then we re-define trials. We are only interested in bees and cues
 % And take a time window of -500 ms and + 1000 ms
 
 stimuli             = {'bee', 'update-cue', 'no-update-cue'};

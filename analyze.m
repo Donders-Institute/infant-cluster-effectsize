@@ -24,13 +24,12 @@ cd(data_dir)
 %% Find subject info from BIDS data 
 
 % Read the participants tsv to find subject info
-[data, header, raw] = tsvread([data_dir filesep 'participants.tsv']);
-subjectlist         = raw(2:end, 1);
+t                   = readtable([data_dir filesep 'participants.tsv'], 'FileType', 'text');
+subjectlist         = t.participant_id;
 
 %% Loop over single subjects to do analysis
 
-% for ii=1:size(subjectlist,1)
-for ii=1:5
+for ii=1:size(subjectlist,1)
     sub = subjectlist{ii};
     do_singlesubject_analysis(sub);
     
