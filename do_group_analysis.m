@@ -57,7 +57,7 @@ grandavg_unexpected      = ft_timelockgrandaverage(cfg, unexpected_all{:});
 
 % Then we plot the results
 cfg                      = [];
-cfg.layout               = 'mylayout_32Ch_actiCAP.mat';
+cfg.layout               = 'EEG1010.lay';
 cfg.interactive          = 'yes';
 cfg.showoutline          = 'yes';
 cfg.showlabels           = 'yes';
@@ -81,7 +81,7 @@ grandavg_repetition3      = ft_timelockgrandaverage(cfg, repetition3_all{:});
 
 % Then we plot the results
 cfg                       = [];
-cfg.layout                = 'mylayout_32Ch_actiCAP.mat';
+cfg.layout                = 'EEG1010.lay';
 cfg.interactive           = 'yes';
 cfg.showoutline           = 'yes';
 cfg.showlabels            = 'yes';
@@ -99,22 +99,21 @@ savefig(gcf, fullfile(output_dir, 'topoplot_grandaverage_repetitions_expected'))
 
 % First we do not correct for multiple comparisons by clustering
 
-cfg                     = [];
-cfg.channel             = 'EEG';
-cfg.parameter           = 'avg';
-cfg.method              = 'montecarlo';
-cfg.statistic           = 'ft_statfun_depsamplesT'; % The samples are dependent (for each subject two conditions)
-cfg.alpha               = 0.05;
-cfg.correctm            = 'no'; % No multiple comparisons correction for now
-cfg.correcttail         = 'prob'; % distribute the alpha level over both tails by multiplying the probability with a factor two, prior to thresholding it wich cfg.alpha.  
-cfg.numrandomization    = 1024; % We can try to enlarge it based on the result
-% cfg.numrandomization    = 'all'; 
+cfg                       = [];
+cfg.channel               = 'EEG';
+cfg.parameter             = 'avg';
+cfg.method                = 'montecarlo';
+cfg.statistic             = 'ft_statfun_depsamplesT'; % The samples are dependent (for each subject two conditions)
+cfg.alpha                 = 0.05;
+cfg.correctm              = 'no'; % No multiple comparisons correction for now
+cfg.correcttail           = 'prob'; % distribute the alpha level over both tails by multiplying the probability with a factor two, prior to thresholding it wich cfg.alpha.  
+cfg.numrandomization      = 1024; % Enlarge this when doing real analysis
 
-Nsub                    = length(subjectlist);
-cfg.design(1,1:2*Nsub)  = [ones(1,Nsub) 2*ones(1,Nsub)];
-cfg.design(2,1:2*Nsub)  = [1:Nsub 1:Nsub];
-cfg.ivar                = 1; % the 1st row in cfg.design contains the independent variable
-cfg.uvar                = 2; % the 2nd row in cfg.design contains the subject number
+Nsub                      = length(subjectlist);
+cfg.design(1,1:2*Nsub)    = [ones(1,Nsub) 2*ones(1,Nsub)];
+cfg.design(2,1:2*Nsub)    = [1:Nsub 1:Nsub];
+cfg.ivar                  = 1; % the 1st row in cfg.design contains the independent variable
+cfg.uvar                  = 2; % the 2nd row in cfg.design contains the subject number
 
 stat_expected_unexpected  = ft_timelockstatistics(cfg, expected_all{:}, unexpected_all{:});
 
@@ -122,7 +121,7 @@ stat_expected_unexpected  = ft_timelockstatistics(cfg, expected_all{:}, unexpect
 
 cfg                       = [];
 cfg.style                 = 'blank';
-cfg.layout                = 'mylayout_32Ch_actiCAP.mat';
+cfg.layout                = 'EEG1010.lay';
 cfg.highlight             = 'on';
 cfg.highlightchannel      = find(stat_expected_unexpected.mask);
 cfg.comment               = 'no';
@@ -132,7 +131,7 @@ figure; ft_topoplotER(cfg, grandavg_expected)
 save(fullfile(output_dir, 'stat_expected_unexpected.mat'), 'stat_expected_unexpected');
 savefig(gcf, fullfile(output_dir, 'topoplot_stat_expected_unexpected'));
 
-%% Now we do the statistics with correction for multipal comparisons
+%% Now we do the statistics with correction for multiple comparisons
 
 % First we need to find neighbouring channels
 
@@ -154,13 +153,13 @@ cfg.statistic             = 'ft_statfun_depsamplesT';
 cfg.alpha                 = 0.05;
 cfg.correctm              = 'cluster';
 cfg.correcttail           = 'prob';
-cfg.numrandomization      = 1024; 
+cfg.numrandomization      = 1024; % Enlarge this when doing real analysis
 
-Nsub                    = length(subjectlist);
-cfg.design(1,1:2*Nsub)  = [ones(1,Nsub) 2*ones(1,Nsub)];
-cfg.design(2,1:2*Nsub)  = [1:Nsub 1:Nsub];
-cfg.ivar                = 1; % the 1st row in cfg.design contains the independent variable
-cfg.uvar                = 2; % the 2nd row in cfg.design contains the subject number
+Nsub                      = length(subjectlist);
+cfg.design(1,1:2*Nsub)    = [ones(1,Nsub) 2*ones(1,Nsub)];
+cfg.design(2,1:2*Nsub)    = [1:Nsub 1:Nsub];
+cfg.ivar                  = 1; % the 1st row in cfg.design contains the independent variable
+cfg.uvar                  = 2; % the 2nd row in cfg.design contains the subject number
 
 stat_expected_unexpected_clusstats  = ft_timelockstatistics(cfg, expected_all{:}, unexpected_all{:});
 
@@ -168,7 +167,7 @@ stat_expected_unexpected_clusstats  = ft_timelockstatistics(cfg, expected_all{:}
 
 cfg                       = [];
 cfg.style                 = 'blank';
-cfg.layout                = 'mylayout_32Ch_actiCAP.mat';
+cfg.layout                = 'EEG1010.lay';
 cfg.highlight             = 'on';
 cfg.highlightchannel      = find(stat_expected_unexpected_clusstats.mask);
 cfg.comment               = 'no';

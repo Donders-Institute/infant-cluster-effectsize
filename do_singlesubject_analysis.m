@@ -23,11 +23,11 @@ end
 addpath(data_dir)
 cd(data_dir)
 
-if exist(output_dir, 'dir')
-    rmdir(output_dir, 's');    
+if ~exist(output_dir, 'dir')
+   mkdir(output_dir);    
 end
 
-mkdir(output_dir);
+
 
 %% Create a subject detail file to be filled with suject details should we need them
 
@@ -91,17 +91,11 @@ cfg.trl             = trl_new;
 cfg.channel             = ft_channelselection('EEG', hdr.label); % Only the EEG channels
 
 % Baseline-correction options
+cfg.bpfilter            = 'yes';  % band-pass filtering  
+cfg.bpfreq              = [1 30]; % filter between 1-30 Hz
 cfg.padding             = 5;
-cfg.hpfilter            = 'yes';
-cfg.hpfreq              = 1;
 cfg.demean              = 'yes';
 data                    = ft_preprocessing(cfg);
-
-
-%% Now let's look at the data with databrowser
-
-% cfg = [];  % use only default options
-% ft_databrowser(cfg, data);
 
 %% Data rejection
 
@@ -115,14 +109,21 @@ data                    = ft_preprocessing(cfg);
 cfg                   = [];
 cfg.channel           = 'all';  
 cfg.reref             = 'yes';
-cfg.implicitref       = 'M1';            % the implicit (non-recorded) reference channel is added to the data representation
-cfg.refchannel        = {'M1', 'TP10'}; % the average of these channels is used as the new reference, note that channel corresponds to the right mastoid (M2)
+cfg.implicitref       = 'TP9';            % the implicit (non-recorded) reference channel is added to the data representation
+cfg.refchannel        = {'TP9', 'TP10'}; % the average of these channels is used as the new reference, note that channel corresponds to the right mastoid (M2)
 data                  = ft_preprocessing(cfg, data);
+save(fullfile(output_dir, 'pre-processed_data.mat'), 'data');
 
 %% Calculate the ERPs for expected (bee) and unexpected (cue) stimuli
 
 % We first perform timelockanalysis on those trials belonging to the
 % expected condition (i.e. the bees)
+
+% We read the pre-processed data from disk
+if exist([output_dir filesep 'pre-processed_data.mat'], 'file')
+    load([output_dir filesep 'pre-processed_data.mat']); 
+end
+
 cfg                = [];
 cfg.trials         = find(ismember(string(data.trialinfo{:,2}), 'bee'));
 expected           = ft_timelockanalysis(cfg, data);
@@ -145,20 +146,12 @@ save(fullfile(output_dir, 'timelock_expected.mat'), 'expected');
 save(fullfile(output_dir, 'timelock_unexpected.mat'), 'unexpected');
 savefig(gcf, fullfile(output_dir, 'topoplot_expected_unexpected'));
 
-%% Then look at the difference ERP waves between expected and unexpected stimuli
-
-% cfg = [];
-% cfg.operation = 'subtract';
-% cfg.parameter = 'avg';
-% difference = ft_math(cfg, expected, unexpected);
-% 
-% cfg = [];
-% cfg.layout      = 'EEG1010.lay';
-% cfg.interactive = 'yes';
-% cfg.showoutline = 'yes';
-% ft_multiplotER(cfg, difference);
-
 %% Calculate the ERPs for expected (bee) stimuli over number of repetitions
+
+% We read the pre-processed data from disk
+if exist([output_dir filesep 'pre-processed_data.mat'], 'file')
+    load([output_dir filesep 'pre-processed_data.mat']); 
+end
 
 % Initiate vectors
 repetition = zeros(size(data.trialinfo, 1),1);
