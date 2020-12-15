@@ -121,7 +121,8 @@ stat_expected_unexpected  = ft_timelockstatistics(cfg, expected_all{:}, unexpect
 
 cfg                       = [];
 cfg.style                 = 'blank';
-cfg.layout                = 'EEG1010.lay';
+% cfg.layout                = 'EEG1010.lay';
+cfg.layout                = 'xyz_layout_1020_33Ch.mat';
 cfg.highlight             = 'on';
 cfg.highlightchannel      = find(stat_expected_unexpected.mask);
 cfg.comment               = 'no';
