@@ -64,12 +64,12 @@ trl_cueonly         = trl(index_stimuli, :); % now only bee and cue trials are l
 pre_stim_samples    = round(0.5 * hdr.Fs); % The pre-stim period is 0.5 s
 post_stim_samples   = round(1 * hdr.Fs);   % The post-stim period is 1 s
 
-% We create a trl_new array containing the new begsample and endsample values
-trl_new             = trl_cueonly;
-
 % If the first trial starts to early, we remove it
-if trl_new{1,1} < pre_stim_samples
-    trl_new = trl_new{2:end, :};
+if trl_cueonly{1,1} < pre_stim_samples
+    trl_cueonly     = trl_cueonly(2:end, :);
+    trl_new         = trl_cueonly;
+else
+    trl_new         = trl_cueonly;
 end
 
 trl_new{:,1}        = trl_cueonly{:,1}-pre_stim_samples; % We extract the pre stim samples from begsample (the first colum of trl_cueonly) to find the new begsample
@@ -134,7 +134,7 @@ unexpected         = ft_timelockanalysis(cfg, data);
 
 % And we plot the ERP's
 cfg                = [];
-cfg.layout         = 'elec1010.lay';
+cfg.layout         = 'EEG1010.lay';
 cfg.interactive    = 'yes';
 cfg.showoutline    = 'yes';
 cfg.showlabels     = 'yes';
@@ -153,7 +153,7 @@ savefig(gcf, fullfile(output_dir, 'topoplot_expected_unexpected'));
 % difference = ft_math(cfg, expected, unexpected);
 % 
 % cfg = [];
-% cfg.layout      = 'elec1010.lay';
+% cfg.layout      = 'EEG1010.lay';
 % cfg.interactive = 'yes';
 % cfg.showoutline = 'yes';
 % ft_multiplotER(cfg, difference);
@@ -203,7 +203,7 @@ repetition3        = ft_timelockanalysis(cfg, data);
 
 % And we plot the ERP's
 cfg                = [];
-cfg.layout         = 'elec1010.lay';
+cfg.layout         = 'EEG1010.lay';
 cfg.interactive    = 'yes';
 cfg.showoutline    = 'yes';
 cfg.showlabels     = 'yes';
