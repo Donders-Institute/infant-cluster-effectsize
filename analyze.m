@@ -29,7 +29,8 @@ subjectlist         = t.participant_id;
 
 %% Loop over single subjects to do analysis
 
-for ii=1:size(subjectlist,1)
+% for ii=1:size(subjectlist,1)
+for ii = 1
     sub = subjectlist{ii};
     do_singlesubject_analysis(sub);
     

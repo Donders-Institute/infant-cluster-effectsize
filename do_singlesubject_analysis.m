@@ -97,22 +97,101 @@ cfg.padding             = 5;
 cfg.demean              = 'yes';
 data                    = ft_preprocessing(cfg);
 
-%% Data rejection
-
-% For now we don't do it, first we analyze the data without artefact
-% rejection
-
 %% Re-referencing
 
-% Note that Ezgi did this after trial rejection, which I did not do yet
+% Note that Ezgi did this after trial rejection
 
-cfg                   = [];
-cfg.channel           = 'all';  
-cfg.reref             = 'yes';
-cfg.implicitref       = 'TP9';            % the implicit (non-recorded) reference channel is added to the data representation
-cfg.refchannel        = {'TP9', 'TP10'}; % the average of these channels is used as the new reference, note that channel corresponds to the right mastoid (M2)
-data                  = ft_preprocessing(cfg, data);
+cfg                     = [];
+cfg.channel             = 'all';  
+cfg.reref               = 'yes';
+cfg.implicitref         = 'TP9';            % the implicit (non-recorded) reference channel is added to the data representation
+cfg.refchannel          = {'TP9', 'TP10'}; % the average of these channels is used as the new reference, note that channel corresponds to the right mastoid (M2)
+data                    = ft_preprocessing(cfg, data);
 save(fullfile(output_dir, 'pre-processed_data.mat'), 'data');
+
+
+%% Data rejection part 1: a rough visual data rejection using ft_rejectvisual
+
+% Let's read the data from disk, if it exists
+
+if exist([output_dir filesep 'pre-processed_data.mat'], 'file')
+    load([output_dir filesep 'pre-processed_data.mat']); 
+end
+
+% We start with trial view to get an overview of the data, then summary
+% view to reject channels or trials that are way off
+
+    cfg                 = [];
+    cfg.method          = 'trial';  % Or switch to summary if needed
+    cfg.keepchannel     = 'nan';    % when rejecting channels, values are replaced by NaN
+    cfg.alim            = [-100, 100];   
+    data_artefact_1     =  ft_rejectvisual(cfg, data);
+    
+    % Let's find the bad channels so we can interpolate them later
+    badchannels         = find(all(isnan(data_artefact_1.trial{1}), 2));
+    
+    % And save the data
+    save(fullfile(output_dir, 'visual_artefact_rejection_1.mat'), 'data_artefact_1');
+    save(fullfile(output_dir, 'badchannels.mat'), 'badchannels');
+
+%% Data rejection part 2: ICA
+
+% Let's read the data from disk, if it exists
+ 
+if exist([output_dir filesep 'visual_artefact_rejection_1.mat'], 'file')
+    load([output_dir filesep 'visual_artefact_rejection_1.mat']); 
+end
+if exist([output_dir filesep 'badchannels.mat'], 'file')
+    load([output_dir filesep 'badchannels.mat']); 
+end
+
+% We do this only on the 'good channels, so first we remove the bad channels'
+
+channels                 = data_artefact_1.label;
+channels(badchannels, :) = [];
+
+% Then we set up the cfg struct and perform ICA
+
+cfg                      = [];
+cfg.channel              = channels;
+cfg.method               = 'runica'; % this is the default
+cfg.demean               = 'no';     % we already demeaned during the pre-processing step 
+comp                     = ft_componentanalysis(cfg, data_artefact_1);
+
+% Then we plot the first 20 components
+cfg                      = [];
+cfg.component            = 1:20; % We plot the first 20 components      
+cfg.layout               = 'EEG1010.lay';
+cfg.comment              = 'no';
+cfg.zlim                 = 'maxabs'; 
+ 
+ft_topoplotIC(cfg, comp)
+    
+disp('')
+input('Press Enter to continue')
+     
+%In the end, plot the time course of all components again to check whether the components 
+% you want to remove indeed look like artifacts over time
+    
+cfg                      = [];
+cfg.layout               = 'EEG1010.lay'; % specify the layout file that should be used for plotting
+cfg.viewmode             = 'component';
+ft_databrowser(cfg, comp)
+    
+disp('')
+input('Press Enter to continue')
+ 
+% Remove the bad components and backproject the data  
+prompt                       = 'Which components do you want to reject [enter row vector]';
+rejcom                       = input(prompt);
+ 
+cfg                          = [];
+cfg.component                = rejcom; % to be removed component(s)
+cfg.channel                  = channels;
+cfg.demean                   = 'no';
+tempcleandata                = ft_rejectcomponent(cfg, comp, tempdata);
+   
+    
 
 %% Calculate the ERPs for expected (bee) and unexpected (cue) stimuli
 
