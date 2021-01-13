@@ -32,7 +32,7 @@ subjectlist         = t.participant_id;
 % for ii=1:size(subjectlist,1)
 for ii = 1
     sub = subjectlist{ii};
-    do_singlesubject_analysis(sub);
+    do_singlesubject_analysis(sub, ii, subjectlist);
     
     %Display step of analysis
     fprintf('\n')

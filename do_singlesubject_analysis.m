@@ -1,44 +1,18 @@
 %% Analysis script to analyze single subjects of the BeeG dataset
 
-function do_singlesubject_analysis(sub)
+function do_singlesubject_analysis(sub, subjectnumber, subjectlist)
 
 %% Input of the dataset
 
-user = getenv('USER');
-if isempty(user)
-  user = getenv('UserName');
-end
-
-switch user
-  case 'Didi'    
-    data_dir    = 'C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset\BIDS';
-    output_dir  = ['C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset\results' filesep sub];    
-  case 'roboos'
-    data_dir    = '/Volumes/Samsung T3/data/di.dcc.DSC_2020.00134_473/bids';
-    output_dir  = ['/Volumes/Samsung T3/data/di.dcc.DSC_2020.00134_473/results' filesep sub];
-  otherwise
-    errror('you have to specify the local directories of the data and this code');
-end
-
-addpath(data_dir)
-cd(data_dir)
-
-if ~exist(output_dir, 'dir')
-   mkdir(output_dir);    
-end
-
-
-
-%% Create a subject detail file to be filled with suject details should we need them
-
-sub_file    = [];
-save(fullfile(output_dir, [sub '.mat']), 'sub_file');
+% Run the details script
+details_script_name = erase(sub, 'sub-');
+details_script_name = ['details_sub' details_script_name];
+run(details_script_name)
 
 %% Find the data and headerfiles
 
 cfg.dataset = [data_dir filesep sub filesep 'eeg' filesep sub '_task-audiovisual_eeg.vhdr' ];
 hdr         = ft_read_header(cfg.dataset);
-
 
 %% Now we can extract the trials from the events.tsv
 
@@ -97,179 +71,228 @@ cfg.padding             = 5;
 cfg.demean              = 'yes';
 data                    = ft_preprocessing(cfg);
 
+%% Artefact rejection
+
+% We start the artefact rejection, consisting of three phases:
+% 1) A rough visual rejection
+% 2) ICA
+% 3) Finetuning by rejecting trials via visual artefact rejection
+
+% This is only necessary once, if it has been done, we skip this step
+
+if do_artefact_rejection==1
+    % we do the artefact rejection
+
+    %% Artefact rejection part 1: a rough visual data rejection using ft_rejectvisual
+
+    % We start with trial view to get an overview of the data, then summary
+    % view to reject channels or trials that are way off
+
+    cfg                 = [];
+    cfg.method          = 'trial';  % Or switch to summary if needed
+    cfg.keepchannel     = 'nan';    % when rejecting channels, values are replaced by NaN
+    cfg.alim            = [-100, 100];   
+    data_artefact_1     =  ft_rejectvisual(cfg, data);
+    
+    % Let's find the bad channels so we can interpolate them later
+    badchannels         = find(all(isnan(data_artefact_1.trial{1}), 2));
+
+    % Then we find the rejected trials
+    badtrial_times      = data_artefact_1.cfg.artfctdef.trial.artifact; % this matrix contains start and end times of each rejected trial
+
+    %% Artefact rejection part 2: ICA
+
+    % We do this only on the 'good channels, so first we remove the bad channels'
+
+    channels                 = data_artefact_1.label;
+    channels(badchannels, :) = [];
+
+        % Then we set up the cfg struct and perform ICA
+
+    cfg                      = [];
+    cfg.channel              = channels;
+    cfg.method               = 'runica'; % this is the default
+    comp                     = ft_componentanalysis(cfg, data_artefact_1);
+
+    % Then we plot the first 20 components
+    cfg                      = [];
+    cfg.component            = 1:20; % We plot the first 20 components      
+    cfg.layout               = 'EEG1010.lay';
+    cfg.comment              = 'no';
+    cfg.zlim                 = 'maxabs'; 
+ 
+    ft_topoplotIC(cfg, comp)
+    
+    disp('')
+    input('Press Enter to continue')
+    close all
+     
+    %In the end, plot the time course of all components again to check whether the components 
+    % you want to remove indeed look like artifacts over time
+    
+    cfg                      = [];
+    cfg.layout               = 'EEG1010.lay'; % specify the layout file that should be used for plotting
+    cfg.viewmode             = 'component';
+    ft_databrowser(cfg, comp)
+    
+    disp('')
+    input('Press Enter to continue')
+    close all
+ 
+    % Remove the bad components and backproject the data  
+    prompt                       = 'Which components do you want to reject [enter row vector]';
+    rejcom                       = input(prompt);
+
+    % Now we exlude all channels excluded during the first visual artefact rejection (containing NaNs)
+
+    exclude                      = find(~ismember(data_artefact_1.label, channels));
+    tempdata                     = data_artefact_1;
+    for trl=1:length(tempdata.trial)
+        tempdata.trial{1,trl}(exclude,:) = [];
+        tempdata.label = channels;
+    end
+
+    cfg                          = [];
+    cfg.component                = rejcom; % to be removed components
+    cfg.channel                  = channels;
+    tempcleandata                = ft_rejectcomponent(cfg, comp, tempdata);
+
+    % Then we copy these back into the full data structure with the 'bad
+    % channels' as nans
+
+    cleandata                    = data_artefact_1;
+    for trl = 1:length(cleandata.trial) % Loop through trials
+        in=1; 
+        for ch = 1:size(cleandata.trial{1,trl},1) % Loop throuch channels
+            if ~isnan(cleandata.trial{1,trl}(ch,1)) % if the channels is not a bad channels with only isnans, we replace with the clean data
+                channellabel = cleandata.label{ch};
+                channel_tempcleandata = find(strcmp(tempcleandata.label, channellabel));
+                cleandata.trial{1,trl}(ch,:) = tempcleandata.trial{1,trl}(channel_tempcleandata,:);
+                in=in+1;
+            end
+        end
+    end
+
+
+    % Finally, we interpolate the bad channels
+
+    load('selected_neighbours.mat'); % Load the neighbours struct
+
+    % NOTE: this struct was created as in the script 'do_group_analysis' and
+    % simply copied into the analysis folder
+
+    % we find the electrode positions needed by ft_channelrepair
+
+    elec = ft_read_sens('standard_1020.elc', 'senstype', 'eeg');
+
+    cfg                        = [];
+    cfg.method                 = 'nearest';
+    cfg.badchannel             = cleandata.label(badchannels);
+    cfg.missingchannel         = []; 
+    cfg.elec                   = elec;
+    cfg.neighbours             = selected_neighbours;
+    data_artefact_2            = ft_channelrepair(cfg, cleandata);
+
+    %% Artefact rejection part 3: a final visual artefact rejection
+
+    % We now go through each trial to check if no artefacts remain.
+    % Here we can remove some bad trials, but no more bad channels
+
+    cfg                 = [];
+    cfg.method          = 'trial';  % Or switch to summary if needed
+    cfg.keepchannel     = 'nan';    % when rejecting channels, values are replaced by NaN
+    cfg.alim            = [-100, 100];   
+    data_cleaned        =  ft_rejectvisual(cfg, data_artefact_2);
+
+    % Let's find the newly rejected trials
+    badtrial_times2     = data_cleaned.cfg.artfctdef.trial.artifact; % this matrix contains start and end times of each rejected trial
+    badtrial_times3     = [badtrial_times; badtrial_times2];
+
+    %% Copying bad channels and bad trials to BIDS 
+
+    %First we find the labels of the bad channels so the reslults are more
+    %human readable
+
+    badchannels_label   = data_artefact_1.label(badchannels, :);
+
+    % Then we find the numbers of the rejected trials rather than their timing
+    badtrials           = zeros(size(badtrial_times3, 1), 1);
+
+    for ii = 1:size(badtrial_times3, 1)
+        badtrials(ii,1) = find(trl_new{:,1}==badtrial_times3(ii,1)); % badtrials now contains the trial number of each rejected trial
+    end
+
+    % Badchannels and badtrials are saved in a subject specific details file,
+    % which we created at the start of this script
+
+
+    % And save the data
+    save(fullfile(output_dir, 'badchannels.mat'), 'badchannels_label');
+    save(fullfile(output_dir, 'badtrials.mat'), 'badtrials');
+    save(fullfile(output_dir, 'data_cleaned.mat'), 'data_cleaned');
+    
+    % Now we copy to BIDS, let's first read the participants tsv
+    participants           = read_tsv([data_dir filesep 'participants.tsv']);
+
+    % Check if the trials column already exists, and add excluded trial number
+    if sum(ismember(participants.Properties.VariableNames, 'excluded_trials')) == 0
+        % The column does not yet exist: we create it
+        excluded_trials                   = nan(length(subjectlist), 1);
+        excluded_trials(subjectnumber, 1) = length(badtrials); 
+        participants.excluded_trials      = excluded_trials;
+    else
+        % The column exists: we add our relevant value to it
+        participants.excluded_trials(subjectnumber,1) = length(badtrials);
+    end
+
+    % Then we update the current tsv file
+    write_tsv([data_dir filesep 'participants.tsv'], participants);
+
+    % Now we also have to update the json file to include excluded trials 
+    participants_json      = read_json([data_dir filesep 'participants.json']);
+    if ~isfield(participants_json, 'excluded_trials')
+        % the field does not yet exist, we create it
+        participants_json.excluded_trials.description = 'number of rejected trials during analysis';
+        % and re-write the json file
+        write_json([data_dir filesep 'participants.json'], participants_json);
+    end
+
+    % Now we do the same for the channels.tsv to update included channels
+    channels_folder         = dir([data_dir filesep sub filesep 'eeg' filesep '*channels*.tsv']);
+    channels_name           = [data_dir filesep sub filesep 'eeg' filesep channels_folder.name];
+    channels_tsv            = read_tsv(channels_name);
+
+    % We add a status column to the channels tsv or replace the existing one
+    % with rejected channels
+
+    status                  = repmat({'Good'}, length(data_cleaned.label), 1);
+    status(badchannels, :)  = {'Bad'};  
+    channels_tsv.status     = status;
+
+    % Then we update the current tsv file
+    write_tsv(channels_name, channels_tsv);
+    
+end % here we end the if loop to do artefact rejection
+
 %% Re-referencing
 
-% Note that Ezgi did this after trial rejection
+if exist([output_dir filesep 'data_cleaned.mat'], 'file')
+        load([output_dir filesep 'data_cleaned.mat']);
+else 
+    error('artefact rejected data in data_cleaned cannot be found: either artefact rejection has not been done or it has not been saved properly');
+end
 
 cfg                     = [];
 cfg.channel             = 'all';  
 cfg.reref               = 'yes';
 cfg.implicitref         = 'TP9';            % the implicit (non-recorded) reference channel is added to the data representation
 cfg.refchannel          = {'TP9', 'TP10'}; % the average of these channels is used as the new reference, note that channel corresponds to the right mastoid (M2)
-data                    = ft_preprocessing(cfg, data);
-save(fullfile(output_dir, 'pre-processed_data.mat'), 'data');
-
-
-%% Data rejection part 1: a rough visual data rejection using ft_rejectvisual
-
-% Let's read the data from disk, if it exists
-
-if exist([output_dir filesep 'pre-processed_data.mat'], 'file')
-    load([output_dir filesep 'pre-processed_data.mat']); 
-end
-
-% We start with trial view to get an overview of the data, then summary
-% view to reject channels or trials that are way off
-
-cfg                 = [];
-cfg.method          = 'trial';  % Or switch to summary if needed
-cfg.keepchannel     = 'nan';    % when rejecting channels, values are replaced by NaN
-cfg.alim            = [-100, 100];   
-data_artefact_1     =  ft_rejectvisual(cfg, data);
-    
-% Let's find the bad channels so we can interpolate them later
-badchannels         = find(all(isnan(data_artefact_1.trial{1}), 2));
-    
-% And save the data
-save(fullfile(output_dir, 'visual_artefact_rejection_1.mat'), 'data_artefact_1');
-save(fullfile(output_dir, 'badchannels.mat'), 'badchannels');
-
-%% Data rejection part 2: ICA
-
-% Let's read the data from disk, if it exists
- 
-if exist([output_dir filesep 'visual_artefact_rejection_1.mat'], 'file')
-    load([output_dir filesep 'visual_artefact_rejection_1.mat']); 
-end
-if exist([output_dir filesep 'badchannels.mat'], 'file')
-    load([output_dir filesep 'badchannels.mat']); 
-end
-
-% We do this only on the 'good channels, so first we remove the bad channels'
-
-channels                 = data_artefact_1.label;
-channels(badchannels, :) = [];
-
-% Then we set up the cfg struct and perform ICA
-
-cfg                      = [];
-cfg.channel              = channels;
-cfg.method               = 'runica'; % this is the default
-comp                     = ft_componentanalysis(cfg, data_artefact_1);
-
-% Then we plot the first 20 components
-cfg                      = [];
-cfg.component            = 1:20; % We plot the first 20 components      
-cfg.layout               = 'EEG1010.lay';
-cfg.comment              = 'no';
-cfg.zlim                 = 'maxabs'; 
- 
-ft_topoplotIC(cfg, comp)
-    
-disp('')
-input('Press Enter to continue')
-close all
-     
-%In the end, plot the time course of all components again to check whether the components 
-% you want to remove indeed look like artifacts over time
-    
-cfg                      = [];
-cfg.layout               = 'EEG1010.lay'; % specify the layout file that should be used for plotting
-cfg.viewmode             = 'component';
-ft_databrowser(cfg, comp)
-    
-disp('')
-input('Press Enter to continue')
-close all
- 
-% Remove the bad components and backproject the data  
-prompt                       = 'Which components do you want to reject [enter row vector]';
-rejcom                       = input(prompt);
-
-% Now we exlude all channels excluded during the first visual artefact rejection (containing NaNs)
-
-exclude                      = find(~ismember(data_artefact_1.label, channels));
-tempdata                     = data_artefact_1;
-for trl=1:length(tempdata.trial)
-    tempdata.trial{1,trl}(exclude,:) = [];
-    tempdata.label = channels;
-end
-
-cfg                          = [];
-cfg.component                = rejcom; % to be removed components
-cfg.channel                  = channels;
-tempcleandata                = ft_rejectcomponent(cfg, comp, tempdata);
-
-% Then we copy these back into the full data structure with the 'bad
-% channels' as nans
-
-cleandata                    = data_artefact_1;
-for trl = 1:length(cleandata.trial) % Loop through trials
-    in=1; 
-    for ch = 1:size(cleandata.trial{1,trl},1) % Loop throuch channels
-        if ~isnan(cleandata.trial{1,trl}(ch,1)) % if the channels is not a bad channels with only isnans, we replace with the clean data
-            channellabel = cleandata.label{ch};
-            channel_tempcleandata = find(strcmp(tempcleandata.label, channellabel));
-            cleandata.trial{1,trl}(ch,:) = tempcleandata.trial{1,trl}(channel_tempcleandata,:);
-            in=in+1;
-        end
-    end
-end
-
-
-% Finally, we interpolate the bad channels
-
-load('selected_neighbours.mat'); % Load the neighbours struct
-
-% NOTE: this struct was created as in the script 'do_group_analysis' and
-% simply copies into the analysis folder
-
-% we find the electrode positions needed by ft_channelrepair
-
-elec = ft_read_sens('standard_1020.elc', 'senstype', 'eeg');
-
-cfg                        = [];
-cfg.method                 = 'nearest';
-cfg.badchannel             = cleandata.label(badchannels);
-cfg.missingchannel         = []; 
-cfg.elec                   = elec;
-cfg.neighbours             = selected_neighbours;
-data_artefact_2            = ft_channelrepair(cfg, cleandata);
-
-% Then we can save the new data
-save(fullfile(output_dir, 'ICA_artefact_rejection_1.mat'), 'data_artefact_2');
-save(fullfile(output_dir, 'ICA_components.mat'), 'comp');
-save(fullfile(output_dir, 'ICA_rejectedcomponents.mat'), 'rejcom');
-
-
-%% Data rejection part 2: a final visual artefact rejection
-
-% Let's read the data from disk, if it exists
-
-if exist([output_dir filesep 'ICA_artefact_rejection_1.mat'], 'file')
-    load([output_dir filesep 'ICA_artefact_rejection_1.mat']); 
-end
-
-% We now go through each trial to check if no artefacts remain
-
-cfg                 = [];
-cfg.method          = 'trial';  % Or switch to summary if needed
-cfg.keepchannel     = 'nan';    % when rejecting channels, values are replaced by NaN
-cfg.alim            = [-100, 100];   
-data_cleaned        =  ft_rejectvisual(cfg, data_artefact_2);
-   
-% And save the data
-save(fullfile(output_dir, 'visual_artefact_rejection_2.mat'), 'data_cleaned');
+data_cleaned            = ft_preprocessing(cfg, data_cleaned);
 
 %% Calculate the ERPs for expected (bee) and unexpected (cue) stimuli
 
 % We first perform timelockanalysis on those trials belonging to the
 % expected condition (i.e. the bees)
-
-% We read the cleaned and pre-processed data from disk
-if exist([output_dir filesep 'visual_artefact_rejection_2.mat'], 'file')
-    load([output_dir filesep 'visual_artefact_rejection_2.mat']); 
-end
 
 cfg                = [];
 cfg.trials         = find(ismember(string(data_cleaned.trialinfo{:,2}), 'bee'));
@@ -294,11 +317,6 @@ save(fullfile(output_dir, 'timelock_unexpected.mat'), 'unexpected');
 savefig(gcf, fullfile(output_dir, 'topoplot_expected_unexpected'));
 
 %% Calculate the ERPs for expected (bee) stimuli over number of repetitions
-
-% We read the cleaned and pre-processed data from disk
-if exist([output_dir filesep 'visual_artefact_rejection_2.mat'], 'file')
-    load([output_dir filesep 'visual_artefact_rejection_2.mat']); 
-end
 
 % Initiate vectors
 repetition = zeros(size(data_cleaned.trialinfo, 1),1);
@@ -357,3 +375,100 @@ savefig(gcf, fullfile(output_dir, 'topoplot_repetitions_expected'))
 
 
 close all
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% SUBFUNCTION
+function tsv = read_tsv(filename)
+ft_info('reading ''%s''\n', filename);
+tsv = readtable(filename, 'Delimiter', 'tab', 'FileType', 'text', 'TreatAsEmpty', 'n/a', 'ReadVariableNames', true);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% SUBFUNCTION
+function write_tsv(filename, tsv)
+ft_info('writing ''%s''\n', filename);
+fn = tsv.Properties.VariableNames;
+for i=1:numel(fn)
+  % write [] as 'n/a'
+  % write nan as 'n/a'
+  % write boolean as 'True' or 'False'
+  tsv.(fn{i}) = output_compatible(tsv.(fn{i}));
+end
+writetable(tsv, filename, 'Delimiter', 'tab', 'FileType', 'text');
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% SUBFUNCTION
+function write_json(filename, json)
+
+ft_info('writing ''%s''\n', filename);
+json = remove_empty(json);
+% json = sort_fields(json) % Let's leave this out so that the order will remain as we indicate it here in the code, not alphabetically ordered;
+json = ft_struct2char(json); % convert strings into char-arrays
+ft_hastoolbox('jsonlab', 1);
+% see also the output_compatible helper function
+% write nan as 'n/a'
+% write boolean as True/False
+str = savejson('', json, 'NaN', '"n/a"', 'ParseLogical', true);
+% fid = fopen_or_error(filename, 'w');
+fid = fopen(filename, 'w');
+fwrite(fid, str);
+fclose(fid);
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% SUBFUNCTION
+function s = remove_empty(s)
+if isempty(s)
+  return
+elseif isstruct(s)
+  fn = fieldnames(s);
+  fn = fn(structfun(@isempty, s));
+  s = removefields(s, fn);
+elseif istable(s)
+  remove = false(1,size(s,2));
+  for i=1:size(s,2)
+    % find columns that are non-numeric and where all elements are []
+    remove(i) = ~isnumeric(s{:,i}) && all(cellfun(@isempty, s{:,i}));
+  end
+  s = s(:,~remove);
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% SUBFUNCTION
+function json = read_json(filename)
+ft_info('reading ''%s''\n', filename);
+ft_hastoolbox('jsonlab', 1);
+json = loadjson(filename);
+json = ft_struct2char(json); % convert strings into char-arrays
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% SUBFUNCTION
+function val = output_compatible(val)
+if istable(val)
+  fn = val.Properties.VariableNames;
+  for i=1:numel(fn)
+    val.(fn{i}) = output_compatible(val.(fn{i}));
+  end
+elseif iscell(val)
+  % use recursion to make all elements compatible
+  val = cellfun(@output_compatible, val, 'UniformOutput', false);
+elseif isnumeric(val) && numel(val)>1 && any(isnan(val))
+  % convert and use recursion to make all elements compatible
+  val = num2cell(val);
+  val = cellfun(@output_compatible, val, 'UniformOutput', false);
+else
+  % write [] as 'n/a'
+  % write nan as 'n/a'
+  % write boolean as 'True' or 'False'
+  if isempty(val)
+    val = 'n/a';
+  elseif isnan(val)
+    val = 'n/a';
+  elseif islogical(val)
+    if val
+      val = 'True';
+    else
+      val = 'False';
+    end
+  end
+end
