@@ -79,23 +79,3 @@ if do_artefact_rejection_test1 == 0 && do_artefact_rejection_test2 == 0
         do_artefact_rejection = 1;
     end
 end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% SUBFUNCTION
-function tsv = read_tsv(filename)
-ft_info('reading ''%s''\n', filename);
-tsv = readtable(filename, 'Delimiter', 'tab', 'FileType', 'text', 'TreatAsEmpty', 'n/a', 'ReadVariableNames', true);
-end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% SUBFUNCTION
-function write_tsv(filename, tsv)
-ft_info('writing ''%s''\n', filename);
-fn = tsv.Properties.VariableNames;
-for i=1:numel(fn)
-  % write [] as 'n/a'
-  % write nan as 'n/a'
-  % write boolean as 'True' or 'False'
-  tsv.(fn{i}) = output_compatible(tsv.(fn{i}));
-end
-writetable(tsv, filename, 'Delimiter', 'tab', 'FileType', 'text');
-end

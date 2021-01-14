@@ -1,5 +1,3 @@
-
-
 %% Input of the dataset
 
 clear;
