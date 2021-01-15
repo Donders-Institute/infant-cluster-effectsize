@@ -1,13 +1,19 @@
 %% Analysis script to analyze single subjects of the BeeG dataset
 
-function do_singlesubject_analysis(sub, subjectnumber, subjectlist)
+function do_singlesubject_analysis(sub, subjectnumber, subjectlist, data_dir)
 
 %% Input of the dataset
 
-% Run the details script
+% Start by running the subject specific details script to find relevant
+% info
+
 details_script_name = erase(sub, 'sub-');
 details_script_name = ['details_sub' details_script_name];
 run(details_script_name)
+
+if ~exist(output_dir, 'dir')
+   mkdir(output_dir);    
+end
 
 %% Find the data and headerfiles
 
@@ -204,74 +210,28 @@ if do_artefact_rejection==1
     cfg.alim            = [-100, 100];   
     data_cleaned        =  ft_rejectvisual(cfg, data_artefact_2);
 
-    % Let's find the newly rejected trials
+    %% Now we find and save rejected trials and channels
+    
     badtrial_times2     = data_cleaned.cfg.artfctdef.trial.artifact; % this matrix contains start and end times of each rejected trial
-    badtrial_times3     = [badtrial_times; badtrial_times2];
-
-    %% Copying bad channels and bad trials to BIDS 
-
-    %First we find the labels of the bad channels so the reslults are more
-    %human readable
-
+  
+    begsample           = [badtrial_times(:,1); badtrial_times2(:,1)];
+    endsample           = [badtrial_times(:,2); badtrial_times2(:,2)];
+    rejection_round     = [repmat({'Visual rejection 1'}, length(badtrial_times), 1); repmat({'Visual rejection 2'}, length(badtrial_times2), 1)];
+    
+    badtrials           = table(begsample, endsample, rejection_round);
+    
+    % For the badchannels, we find the labels corresponding to the bad
+    % channels, since it is easier to interpret
+    
     badchannels_label   = data_artefact_1.label(badchannels, :);
-
-    % Then we find the numbers of the rejected trials rather than their timing
-    badtrials           = zeros(size(badtrial_times3, 1), 1);
-
-    for ii = 1:size(badtrial_times3, 1)
-        badtrials(ii,1) = find(trl_new{:,1}==badtrial_times3(ii,1)); % badtrials now contains the trial number of each rejected trial
-    end
-
-    % Badchannels and badtrials are saved in a subject specific details file,
-    % which we created at the start of this script
-
-
-    % And save the data
+    
+    % Then we save everything
     save(fullfile(output_dir, 'badchannels.mat'), 'badchannels_label');
+    save(fullfile(output_dir, 'badchannelnumbers.mat'), 'badchannels');
     save(fullfile(output_dir, 'badtrials.mat'), 'badtrials');
+        
     save(fullfile(output_dir, 'data_cleaned.mat'), 'data_cleaned');
-    
-    % Now we copy to BIDS, let's first read the participants tsv
-    participants           = read_tsv([data_dir filesep 'participants.tsv']);
-
-    % Check if the trials column already exists, and add excluded trial number
-    if sum(ismember(participants.Properties.VariableNames, 'excluded_trials')) == 0
-        % The column does not yet exist: we create it
-        excluded_trials                   = nan(length(subjectlist), 1);
-        excluded_trials(subjectnumber, 1) = length(badtrials); 
-        participants.excluded_trials      = excluded_trials;
-    else
-        % The column exists: we add our relevant value to it
-        participants.excluded_trials(subjectnumber,1) = length(badtrials);
-    end
-
-    % Then we update the current tsv file
-    write_tsv([data_dir filesep 'participants.tsv'], participants);
-
-    % Now we also have to update the json file to include excluded trials 
-    participants_json      = read_json([data_dir filesep 'participants.json']);
-    if ~isfield(participants_json, 'excluded_trials')
-        % the field does not yet exist, we create it
-        participants_json.excluded_trials.description = 'number of rejected trials during analysis';
-        % and re-write the json file
-        write_json([data_dir filesep 'participants.json'], participants_json);
-    end
-
-    % Now we do the same for the channels.tsv to update included channels
-    channels_folder         = dir([data_dir filesep sub filesep 'eeg' filesep '*channels*.tsv']);
-    channels_name           = [data_dir filesep sub filesep 'eeg' filesep channels_folder.name];
-    channels_tsv            = read_tsv(channels_name);
-
-    % We add a status column to the channels tsv or replace the existing one
-    % with rejected channels
-
-    status                  = repmat({'Good'}, length(data_cleaned.label), 1);
-    status(badchannels, :)  = {'Bad'};  
-    channels_tsv.status     = status;
-
-    % Then we update the current tsv file
-    write_tsv(channels_name, channels_tsv);
-    
+        
 end % here we end the if loop to do artefact rejection
 
 %% Re-referencing
