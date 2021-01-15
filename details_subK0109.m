@@ -3,10 +3,13 @@
 % inconsistent, this is the place to deal with it.
 
 subject = 'K0109';
+subjectnumber = 1;
+sub     = ['sub-' subject];
 
 % this is where the intermediate results will be written
 % data_dir points to the BIDS dataset
 output_dir = fullfile(fileparts(data_dir), 'results', sub);
+data_dir   = data_dir;
 
 % The rejected trials and rejected channels can be filled out here:
 badchannels = {};

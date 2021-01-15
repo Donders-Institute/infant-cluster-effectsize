@@ -1,6 +1,6 @@
 %% %% Analysis script to perform group analysis of the BeeG dataset
 
-function do_group_analysis(subjectlist)
+function do_group_analysis(subjectlist, data_dir)
 
 %% We set the input data directory and the output data directory
 
@@ -10,14 +10,14 @@ if isempty(user)
 end
 
 switch user
-  case 'Didi'    
+  case 'Didi'   
     data_dir    = 'C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset\results';
     output_dir  = ['C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset\results' filesep 'group'];    
   case 'roboos'
     data_dir    = '/Volumes/Samsung T3/data/di.dcc.DSC_2020.00134_473/results';
     output_dir  = ['/Volumes/Samsung T3/data/di.dcc.DSC_2020.00134_473/results' filesep 'group'];
   otherwise
-    errror('you have to specify the local directories of the data and this code');
+    error('you have to specify an output directory for this code');
 end
 
 addpath(data_dir)

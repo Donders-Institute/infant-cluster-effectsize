@@ -13,7 +13,7 @@ switch user
   case 'roboos'
     data_dir    = '/Volumes/Samsung T3/data/di.dcc.DSC_2020.00134_473/bids';
   otherwise
-    errror('you have to specify the local directories of the data and this code');
+    error('data directory could not be found');
 end
 
 addpath(data_dir)
@@ -30,7 +30,7 @@ subjectlist         = t.participant_id;
 % for ii=1:size(subjectlist,1)
 for ii = 1
     sub = subjectlist{ii};
-    do_singlesubject_analysis(sub, ii, subjectlist, data_dir);
+    do_singlesubject_analysis;
     
     %Display step of analysis
     fprintf('\n')
@@ -42,15 +42,9 @@ end
 
 %% Group analysis
 
-do_group_analysis(subjectlist);
+do_group_analysis(subjectlist, data_dir);
 
 %% Finally we can copy artefact rejection to BIDS, if desired
 
-disp('Analysis is finished!');
-yn = input('Do you want to copy artefact rejection results to BIDS? [press y / n]','s');
-if strcmp(yn,'y')==1
-    % we execute the do_copy_artefactrejection_to_BIDS script
-    do_copy_artefactrejection_to_BIDS(subjectlist, data_dir)
-elseif strcmp(yn,'n')==1
-    % we do nothing
-end
+do_copy_artefactrejection_to_BIDS(subjectlist, data_dir)
+

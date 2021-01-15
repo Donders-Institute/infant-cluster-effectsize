@@ -1,7 +1,5 @@
 %% Analysis script to analyze single subjects of the BeeG dataset
 
-function do_singlesubject_analysis(sub, subjectnumber, subjectlist, data_dir)
-
 %% Input of the dataset
 
 % Start by running the subject specific details script to find relevant
@@ -216,7 +214,7 @@ if do_artefact_rejection==1
   
     begsample           = [badtrial_times(:,1); badtrial_times2(:,1)];
     endsample           = [badtrial_times(:,2); badtrial_times2(:,2)];
-    rejection_round     = [repmat({'Visual rejection 1'}, length(badtrial_times), 1); repmat({'Visual rejection 2'}, length(badtrial_times2), 1)];
+    rejection_round     = [repmat({'Visual rejection 1'}, size(badtrial_times, 1), 1); repmat({'Visual rejection 2'}, size(badtrial_times2,1), 1)];
     
     badtrials           = table(begsample, endsample, rejection_round);
     

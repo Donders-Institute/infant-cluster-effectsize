@@ -5,8 +5,11 @@ function do_copy_artefactrejection_to_BIDS(subjectlist, data_dir)
 % It will incorporate the rejected channels and trials in the BIDS
 % structure
 
-% Specifically, rejected trials will go in the participants tsv
-% While rejected channels will go in the channels tsv
+% Specifically, number of rejected trials will go in the participants tsv
+% Begsample, endsample, and round of artefact rejection of each rejected
+% trial go in the derivatives folder in a badtrials tsv file
+
+% Rejected channels go in the channels tsv
 
 % We loop over subjects
 for ii=1:size(subjectlist,1)
@@ -43,6 +46,31 @@ for ii=1:size(subjectlist,1)
             % and re-write the json file
             write_json([data_dir filesep 'participants.json'], participants_json);
         end
+        
+        % Secondly, we create an events tsv file containing begsample,
+        % endsample, and rejection round of each rejected trial
+        
+        if exist([data_dir filesep 'derivatives' filesep sub filesep 'eeg' filesep sub '_badtrials.tsv'], 'file')
+            % The file already exists: we update it
+            write_tsv([data_dir filesep 'derivatives' filesep sub filesep 'eeg' filesep sub '_badtrials.tsv'], badtrials);
+        else
+            % We have to make the folder and file
+            mkdir([data_dir filesep 'derivatives' filesep sub filesep 'eeg'])
+            write_tsv([data_dir filesep 'derivatives' filesep sub filesep 'eeg' filesep sub '_badtrials.tsv'], badtrials);
+            
+            % Then we also make a corresponding json file
+            badtrials_json.begsample.description       = 'Sample where event begins (measured from start of recording)';
+            badtrials_json.begsample.units             = 'sample number';
+            badtrials_json.endsample.description       = 'Sample where event ends (measured from start of recording)';
+            badtrials_json.endsample.units             = 'sample number';
+            badtrials_json.rejection_round.description = 'Round of the artefact rejection process where the artefact has been detected';
+            badtrials_json.rejection_round.levels      = {'Visual rejection 1: the first, rough visual rejection round',...
+                                                          'Visual rejection 2: the last, fine-tuning rejection round'};
+                                                      
+            % Then we write json file
+            write_json([data_dir filesep 'derivatives' filesep sub filesep 'eeg' filesep sub '_badtrials.json'], badtrials_json);
+        end    
+        
     else
         % Apparently no artefact rejection has been performed yet
         str = ['no artefact rejection has been performed yet for subject ' sub];
