@@ -2,16 +2,32 @@
 
 %% Input of the dataset
 
-% Start by running the subject specific details script to find relevant
-% info
+% Start by setting the  output directory
 
-details_script_name = erase(sub, 'sub-');
-details_script_name = ['details_sub' details_script_name];
-run(details_script_name)
+output_dir     = fullfile(fileparts(data_dir), 'results', sub);
 
 if ~exist(output_dir, 'dir')
    mkdir(output_dir);    
 end
+
+%%  Test if artefact rejection has to performed or not
+
+% Let's check if the badtrials and badchannels .mat files already exist
+
+if exist([output_dir filesep 'badtrials.mat'], 'file') && exist([output_dir filesep 'badchannels.mat'], 'file')
+    % The analysis has alreay been performed: we ask the user if it needs
+    % to be repeated
+    yn = input('Artefact rejection has already been done, do you want to re-do it? [press y / n]','s');
+    if strcmp(yn,'y')==1
+        do_artefact_rejection = 1;
+    elseif strcmp(yn,'n')==1
+        do_artefact_rejection = 0;
+    end
+else
+    % Artefact rejection has nto been done yet: we have to execute it here
+    do_artefact_rejection = 1;
+end
+
 
 %% Find the data and headerfiles
 
@@ -56,6 +72,9 @@ trl_new{:,3}        = - pre_stim_samples;
 
 % Then add the new trials to cfg
 cfg.trl             = trl_new;
+
+% And save the new trials
+save(fullfile(output_dir, 'trials.mat'), 'trl_new');
 
 %% Pre-processing on the episodes that are defined as trials
 
@@ -151,7 +170,7 @@ if do_artefact_rejection==1
 
     exclude                      = find(~ismember(data_artefact_1.label, channels));
     tempdata                     = data_artefact_1;
-    for trl=1:length(tempdata.trial)
+    for trl=1:size(tempdata.trial, 2)
         tempdata.trial{1,trl}(exclude,:) = [];
         tempdata.label = channels;
     end
@@ -165,7 +184,7 @@ if do_artefact_rejection==1
     % channels' as nans
 
     cleandata                    = data_artefact_1;
-    for trl = 1:length(cleandata.trial) % Loop through trials
+    for trl = 1:size(cleandata.trial, 2) % Loop through trials
         in=1; 
         for ch = 1:size(cleandata.trial{1,trl},1) % Loop throuch channels
             if ~isnan(cleandata.trial{1,trl}(ch,1)) % if the channels is not a bad channels with only isnans, we replace with the clean data

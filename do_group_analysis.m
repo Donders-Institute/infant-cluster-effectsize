@@ -28,7 +28,6 @@ if ~exist(output_dir, 'dir')
 end
 
 
-
 %% We loop through all subjects and obtain the results of their timelock analysis
 
 
@@ -268,9 +267,7 @@ savefig(gcf, fullfile(output_dir, 'topoplot_stat_expected_unexpected'));
 
 %%  Then we perform the permutation based statistics
 
-if exist([output_dir filesep 'selected_neighbours.mat'], 'file')
-    load([output_dir filesep 'selected_neighbours.mat']);
-end
+load('selected_neighbours.mat');
 
 cfg                       = [];
 cfg.channel               = 'EEG';
