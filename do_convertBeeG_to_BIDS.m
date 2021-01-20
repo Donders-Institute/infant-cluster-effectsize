@@ -2,27 +2,10 @@
 
 %% Section 1: specification of folders
 
-clear;
+clear
 
-user = getenv('USER');
-if isempty(user)
-  user = getenv('UserName');
-end
+do_setpath
 
-switch user
-  case 'Didi'
-    scripts     = 'C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset';
-    sourcedata  = 'C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset';
-    bidsroot    = 'C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset\BIDS';
-  case 'roboos'
-    scripts     = '/Volumes/Samsung T3/data/Data2bids-Scripts/BeeG';
-    sourcedata  = '/Volumes/Samsung T3/data/di.dcc.DSC_2020.00134_473/sourcedata';
-    bidsroot    = '/Volumes/Samsung T3/data/di.dcc.DSC_2020.00134_473/bids';
-  otherwise
-    errror('you have to specify the local directories of the data and this code');
-end
-
-addpath(scripts)
 cd(sourcedata)
 
 % Delete the current BIDS folder if it already exists
@@ -47,7 +30,7 @@ for ii = 1:length(sub)
   cfg                                         = [];
   cfg.method                                  = 'copy';
   cfg.bidsroot                                = bidsroot;
-  cfg.datatype                                = 'eeg';  
+  cfg.datatype                                = 'eeg';
   cfg.writejson                               = 'replace';
   
   %% Section 4: the dataset_description.json
@@ -84,23 +67,23 @@ for ii = 1:length(sub)
    %% Section 7: the EEG json
   
   % Describing the task
-  cfg.TaskName                                       = 'audiovisual'; 
+  cfg.TaskName                                       = 'audiovisual';
   cfg.TaskDescription                                = 'infants observed a sequence of expected stimuli, followed by an update or no- update cue and then another sequence of unexpected or expected stimuli,respectively';
-  cfg.Instructions                                   = 'Parents were instructed to keep the interaction with their child minimal during the measurement, infants received no instructions'; 
+  cfg.Instructions                                   = 'Parents were instructed to keep the interaction with their child minimal during the measurement, infants received no instructions';
     
   % Describing the recording setup
-  cfg.InstitutionName                                = 'The Donders Institute for Brain, Cognition and Behaviour'; 
+  cfg.InstitutionName                                = 'The Donders Institute for Brain, Cognition and Behaviour';
   cfg.InstitutionAddress                             = 'Heyendaalseweg 135, 6525 AJ Nijmegen, the Netherlands';
   cfg.InstitutionalDepartmentName                    = 'Donders Centre for Cognition';
   
   cfg.Manufacturer                                   = 'Brain Products GmbH';
-  cfg.ManufacturersModelName                         = 'BrainAmp Standard';  
-  cfg.eeg.CapManufacturer                            = 'Brain Products GmbH'; 
-  cfg.eeg.CapManufacturersModelName                  = 'actiCAP 32Ch'; 
-  cfg.eeg.EEGPlacementScheme                         = '10-20'; 
-  cfg.eeg.EEGReference                               = 'TP9'; 
-  cfg.eeg.EEGGround                                  = 'AFz';   
-  cfg.eeg.SamplingFrequency                          = 500; 
+  cfg.ManufacturersModelName                         = 'BrainAmp Standard';
+  cfg.eeg.CapManufacturer                            = 'Brain Products GmbH';
+  cfg.eeg.CapManufacturersModelName                  = 'actiCAP 32Ch';
+  cfg.eeg.EEGPlacementScheme                         = '10-20';
+  cfg.eeg.EEGReference                               = 'TP9';
+  cfg.eeg.EEGGround                                  = 'AFz';
+  cfg.eeg.SamplingFrequency                          = 500;
   
   % NOTE: the amplifier always samples at 5000 Hz in hardware, the data
   % is then downsampled to 500 Hz in software
@@ -109,20 +92,20 @@ for ii = 1:length(sub)
   cfg.eeg.HardwareFilters.LowCutoff.Frequency        = 0.1;
   cfg.eeg.HardwareFilters.HighCutoff.Frequency       = 1000;
   cfg.eeg.SoftwareFilters.LowCutoff.Frequency        = 0.1;
-  cfg.eeg.SoftwareFilters.HighCutoff.Frequency       = 200;   
+  cfg.eeg.SoftwareFilters.HighCutoff.Frequency       = 200;
   cfg.eeg.EEGChannelCount                            = 32; % Number of EEG channels
   
   % Describing the recording
   cfg.eeg.RecordingType                              = 'continuous';
   % cfg.eeg.RecordingDuration                        = % Read automatically
-  % cfg.eeg.EpochLength                              = % Read automatically  
+  % cfg.eeg.EpochLength                              = % Read automatically
   
   %% Section 8: the events.tsv.
   
   % To do this, first create events using ft_define_trial
   cfg_trials                      = cfg;
   cfg_trials.trialdef.eventtype   = 'Stimulus';
-  trl                             = trialfun_BeeG(cfg_trials);   
+  trl                             = trialfun_BeeG(cfg_trials);
   cfg.events                      = trl;
   
   %% Section 9: the channels.tsv
@@ -170,7 +153,7 @@ for ii = 1:length(sub)
                                                   'update-cue: presentation of the update-cue (see subfolder stimuli\circle) and a sound (see subfolder stimuli\sound10)',...
                                                   'no-update-cue: presentation of the no-update-cue (see subfolder stimuli\triangle)and a sound (see subfolder stimuli\sound11)',};
     events_json.location_bee.description         = 'Location of the bee';
-    events_json.location_bee.units               = 'degrees';    
+    events_json.location_bee.units               = 'degrees';
     
     foldername                                  = [bidsroot filesep 'sub-' cfg.sub filesep 'eeg'];
     filename                                    = [foldername filesep 'sub-' cfg.sub '_task-' cfg.TaskName '_events.json'];
@@ -357,13 +340,13 @@ CodedPeriod                                    = cell(length(excel_observation),
       elseif excel_observation(ll, 1)>100 && excel_observation(ll, 1)<200
           CodedPeriod(ll, :) = {'intro video'};
       elseif excel_observation(ll, 1)>2000000 && excel_observation(ll, 1)<22000000
-          % there are nine phases of this:       
+          % there are nine phases of this:
           phase = num2str(excel_observation(ll, 1));
-          phase_str = ['stimulus video - phase' phase(end)]; 
+          phase_str = ['stimulus video - phase' phase(end)];
           CodedPeriod(ll, :) = {phase_str};
-      else 
+      else
           phase = num2str(excel_observation(ll, 1));
-          phase_str = ['peek-a-boo video - phase' phase(end)]; 
+          phase_str = ['peek-a-boo video - phase' phase(end)];
           CodedPeriod(ll, :) = {phase_str};
       end
   end

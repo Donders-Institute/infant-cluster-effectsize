@@ -1,38 +1,58 @@
 %% %% Analysis script to perform group analysis of the BeeG dataset
 
-function do_group_analysis(subjectlist, data_dir)
+do_setpath
 
-%% We set the input data directory and the output data directory
+% Display step of analysis
+fprintf('\n')
+disp('------------------------------------')
+disp ('Doing group analysis')
+disp('------------------------------------')
+fprintf('\n')
 
-user = getenv('USER');
-if isempty(user)
-  user = getenv('UserName');
-end
-
-switch user
-  case 'Didi'   
-    data_dir    = 'C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset\results';
-    output_dir  = ['C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset\results' filesep 'group'];    
-  case 'roboos'
-    data_dir    = '/Volumes/Samsung T3/data/di.dcc.DSC_2020.00134_473/results';
-    output_dir  = ['/Volumes/Samsung T3/data/di.dcc.DSC_2020.00134_473/results' filesep 'group'];
-  otherwise
-    error('you have to specify an output directory for this code');
-end
-
-addpath(data_dir)
-cd(data_dir)
+% this is where the group results will be written
+output_dir = fullfile(results, 'group');
 
 if ~exist(output_dir, 'dir')
-    mkdir(output_dir);  
+    mkdir(output_dir);
 end
 
+%% Now we find and ignore subjects with too many rejected trials
+
+% First we define a trial rejection threshold
+threshold = input('Indicate the threshold for percentage of rejected trials [a number between 0 and 100]');
+
+excluded_participants = [];
+
+for ii = 1:size(subjectlist,1)
+    % We find the folder containing analysis results for each subject, those are the input for the group analysis
+    sub            = subjectlist{ii};
+    input_dir     = fullfile(fileparts(bidsroot), 'results', sub);
+    if exist([input_dir filesep 'badtrials.mat'], 'file') && exist([input_dir filesep 'trials.mat'], 'file')
+        load([input_dir filesep 'badtrials.mat']);
+        load([input_dir filesep 'trials.mat']);
+        rejected_trials = size(badtrials.begsample, 1);
+        total_trials    = size(trl_new.begsample, 1);
+        percentage_rejected_trials = (rejected_trials/total_trials)*100;
+        if percentage_rejected_trials > threshold
+            % We have to exclude this participant
+            excluded_participants = [excluded_participants, ii];
+        end
+    else
+        % The artefact rejection has not been performed
+        warning('Continuing to group analysis but artefact rejection results cannot be found');
+    end
+end
+
+subjectlist_new = subjectlist;
+subjectlist_new(excluded_participants) = [];
+
+% we save the exluded participants
+save(fullfile(output_dir, 'excludedparticipants.mat'), 'excluded_participants');
 
 %% We loop through all subjects and obtain the results of their timelock analysis
 
-
 for ii = 1:length(subjectlist)
-    folder                  = [data_dir filesep subjectlist{ii}];
+    folder                  = [results filesep subjectlist{ii}];
     load([folder filesep 'timelock_expected.mat']);
     expected_all(ii)        = { expected }; % We collect all averages in a cell array of structs
     load([folder filesep 'timelock_unexpected.mat']);
@@ -105,7 +125,7 @@ cfg.method                = 'montecarlo';
 cfg.statistic             = 'ft_statfun_depsamplesT'; % The samples are dependent (for each subject two conditions)
 cfg.alpha                 = 0.05;
 cfg.correctm              = 'no'; % No multiple comparisons correction for now
-cfg.correcttail           = 'prob'; % distribute the alpha level over both tails by multiplying the probability with a factor two, prior to thresholding it wich cfg.alpha.  
+cfg.correcttail           = 'prob'; % distribute the alpha level over both tails by multiplying the probability with a factor two, prior to thresholding it wich cfg.alpha.
 cfg.numrandomization      = 1024; % Enlarge this when doing real analysis
 
 Nsub                      = length(subjectlist);
@@ -142,17 +162,17 @@ savefig(gcf, fullfile(output_dir, 'topoplot_stat_expected_unexpected'));
 % %% To start we read in the channels used in the EEG study
 
 % label = expected.cfg.channel;
-% 
+%
 % % Read sensor positions from the standard 1020 3D format available on fieldtrip
 % elec = ft_read_sens('standard_1020.elc', 'senstype', 'eeg');
-% 
+%
 % if exist('newlayout')
 %     clear newlayout
 % end
-% 
+%
 % % Now we loop through all our used channels, to create a new layout struct
 % % containing only those channels used in our study
-% 
+%
 % for ii = 1:length(label)
 %       index                     = strcmp(label{ii}, elec.label);
 %       newlayout.chanpos(ii, :)  = elec.chanpos(index, :);
@@ -163,77 +183,77 @@ savefig(gcf, fullfile(output_dir, 'topoplot_stat_expected_unexpected'));
 %       newlayout.type            = elec.type;
 %       newlayout.unit            = elec.unit;
 % end
-% 
+%
 % % Then we plot this in 3D
-% 
+%
 % fig = ft_plot_sens(newlayout, 'label', 'label');
-% 
+%
 % %% Step 2: draw lines in the figure to connect channels and create a neighbours struct
-% 
+%
 % % We loop through all our channels
-% 
+%
 % for cc = 1:length(newlayout.label)
-%      
+%
 %      % find the corresponding label
 %      channel_to_connect = newlayout.label{cc};
-%          
+%
 %      % We then allow the user to provide a cell array of channels to connect
 %      % the selected channel to
-%      
+%
 %      fprintf('\n')
 %      disp(['channel to connect = ' channel_to_connect ', channel number ' num2str(cc) ' of ' num2str(length(newlayout.label))]);
 %      text = 'provide a row cell array named channels to connect to channel to connect: ';
-%      channels = input(text);       
-%      
+%      channels = input(text);
+%
 %      % We then create a line between the selected channel and the channels
 %      % to connect that channel to
-%      
-%      connect    = find(strcmp(newlayout.label, channel_to_connect)); 
-%      
+%
+%      connect    = find(strcmp(newlayout.label, channel_to_connect));
+%
 %      for ci = 1:length(channels)
 %          connect1    = find(strcmp(newlayout.label, channels(ci)));
 %          linepoints  = [newlayout.chanpos(connect, :); newlayout.chanpos(connect1, :)];
 %          line(linepoints(:,1), linepoints(:,2), linepoints(:,3));
 %      end
-%  
+%
 %      % Then we create the neighbours struct
-%      
+%
 %      selected_neighbours(cc).label       = channel_to_connect;
 %      selected_neighbours(cc).neighblabel = channels;
-%     
+%
 %  end
-%  
+%
 % % We save the neighbours struct and created image to disk
 % save(fullfile(output_dir, 'selected_neighbours.mat'), 'selected_neighbours');
 % savefig(gcf, fullfile(output_dir, 'selected_neighbours_plot'));
-% 
+%
 % % When this step of the code is finished, comment it out to continue with
 % % manual optimization in the next step
-% 
+%
 % %%  Last step: make some manual changes if necessary
-% 
+%
 % if exist('selected_neighbours.mat')
 %     load('selected_neighbours.mat');
 % end
-% 
+%
 % if exist('selected_neighbours_plot.fig')
 %     openfig('selected_neighbours_plot.fig');
 % end
-% 
+%
 % % Add a line between two points that were missed:
-% 
+%
 % connect     = find(strcmp(newlayout.label, 'Fp1'));
 % connect1    = find(strcmp(newlayout.label, 'Fp2'));
 % linepoints  = [newlayout.chanpos(connect, :); newlayout.chanpos(connect1, :)];
 % line(linepoints(:,1), linepoints(:,2), linepoints(:,3));
-% 
+%
 % % And add the connection to the neighours struct
 % selected_neighbours(1).neighblabel  = [selected_neighbours(1).neighblabel, {'Fp2'}];
 % selected_neighbours(2).neighblabel  = [selected_neighbours(2).neighblabel, {'Fp1'}];
-% 
+%
 % % Then we do a sanity check, make sure that neighbours are fully bidirectional
 % % I.e. if Cz has FCz as a neighbour, then FCz should have Cz as a neighbour
-% 
+%
 % for ii = 1:length(selected_neighbours)
 %     channel = selected_neighbours(ii).label;
 %     for tt  = 1:length(selected_neighbours(ii).neighblabel)
@@ -243,25 +263,25 @@ savefig(gcf, fullfile(output_dir, 'topoplot_stat_expected_unexpected'));
 %         end
 %     end
 % end
-% 
+%
 % % And we replot so that all line are now correct
-% 
+%
 % close all
-% 
+%
 % fig = ft_plot_sens(newlayout, 'label', 'label');
-% 
+%
 % for ii = 1:length(selected_neighbours)
 %     channel         = selected_neighbours(ii).label;
 %     connect         = find(strcmp(newlayout.label, channel));
-%     for tt          = 1:length(selected_neighbours(ii).neighblabel)        
+%     for tt          = 1:length(selected_neighbours(ii).neighblabel)
 %         connect1    = find(strcmp(newlayout.label, selected_neighbours(ii).neighblabel{tt}));
 %         linepoints  = [newlayout.chanpos(connect, :); newlayout.chanpos(connect1, :)];
 %         line(linepoints(:,1), linepoints(:,2), linepoints(:,3));
 %     end
 % end
-% 
+%
 % % And save this plot and new neighbours
-% 
+%
 % save(fullfile(output_dir, 'selected_neighbours.mat'), 'selected_neighbours');
 % savefig(gcf, fullfile(output_dir, 'selected_neighbours_plot'));
 
@@ -321,7 +341,7 @@ cfg.numrandomization      = 1024; % Enlarge this when doing real analysis
 
 %design matrix
 Nsub                      = length(subjectlist);
-Nrep                      = 3; % three repetitions or "time points" 
+Nrep                      = 3; % three repetitions or "time points"
 design                    = zeros(2, Nrep*Nsub);
 design(1, :)              = repmat(1:Nsub, 1, Nrep);  % subject
 design(2, :)              = repelem(1:Nrep, Nsub);  % session
