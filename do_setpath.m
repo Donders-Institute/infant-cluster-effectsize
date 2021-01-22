@@ -5,7 +5,7 @@ end
 
 switch user
     case 'Didi'
-        scripts     = 'C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset';
+        scripts     = 'C:\Users\Didi\Documents\GitHub\BeeG analysis';
         sourcedata  = 'C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset';
         bidsroot    = 'C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset\BIDS';
         results     = 'C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset\results';

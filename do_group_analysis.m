@@ -287,7 +287,7 @@ savefig(gcf, fullfile(output_dir, 'topoplot_stat_expected_unexpected'));
 
 %%  Then we perform the permutation based statistics
 
-load('selected_neighbours.mat');
+load(fullfile(scripts, 'selected_neighbours.mat'));
 
 cfg                       = [];
 cfg.channel               = 'EEG';
