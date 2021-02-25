@@ -318,6 +318,8 @@ cfg.highlightchannel      = find(stat_expected_unexpected_clusstats.mask);
 cfg.comment               = 'no';
 figure; ft_topoplotER(cfg, grandavg_expected)
 
+% Find the p value of the largest cluster
+
 % And save the data
 save(fullfile(output_dir, 'stat_expected_unexpected_clusstats.mat'), 'stat_expected_unexpected_clusstats');
 savefig(gcf, fullfile(output_dir, 'topoplot_stat_expected_unexpected_clusstats'));
@@ -333,7 +335,7 @@ cfg.channel               = 'EEG';
 cfg.neighbours            = selected_neighbours; % defined as above
 cfg.parameter             = 'avg';
 cfg.method                = 'montecarlo';
-cfg.statistic             = 'depsamplesregrT';
+cfg.statistic             = 'depsamplesregrT'; % Perhaps Spearman would be better here
 cfg.alpha                 = 0.05;
 cfg.correctm              = 'cluster';
 cfg.correcttail           = 'prob';
