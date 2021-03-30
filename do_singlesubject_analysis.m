@@ -1,8 +1,9 @@
-%% Analysis script to analyze a single subject of the BeeG dataset
+%% Analysis script to analyze a single subject
 
+% Set paths
 do_setpath
 
-% Display step of analysis
+% Display current subject being processed
 fprintf('\n')
 disp('------------------------------------')
 disp (['Doing analysis for subject: ' sub])
@@ -16,17 +17,16 @@ if ~exist(output_dir, 'dir')
     mkdir(output_dir);
 end
 
-%%  Test if artefact rejection has to performed or not
+%%  Test whether artefact rejection has been performed already or not
 
-% Let's check if the badtrials and badchannels .mat files already exist
-
+% Check if the badtrials and badchannels .mat files already exist
 if exist([output_dir filesep 'badtrials.mat'], 'file') && exist([output_dir filesep 'badchannels.mat'], 'file')
     % The analysis has alreay been performed: we ask the user if it needs
     % to be repeated
-    yn = input('Artefact rejection has already been done, do you want to re-do it? [press y / n]','s');
-    if strcmp(yn,'y')==1
+    yn = input('Artefact rejection has already been done. Do you want to re-do it? [press y / n]','s');
+    if strcmp(yn,'y')
         do_artefact_rejection = 1;
-    elseif strcmp(yn,'n')==1
+    elseif strcmp(yn,'n')
         do_artefact_rejection = 0;
     end
 else
