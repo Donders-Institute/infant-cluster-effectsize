@@ -9,14 +9,14 @@ disp ('Doing group analysis')
 disp('------------------------------------')
 fprintf('\n')
 
-% this is where the group results will be written
+% Specifying results directory for the group level
 output_dir = fullfile(results, 'group');
 
 if ~exist(output_dir, 'dir')
     mkdir(output_dir);
 end
 
-%% Now we find and ignore subjects with too many rejected trials
+%% First, find and exclude subjects if too many trials had to be rejected
 
 % First we define a trial rejection threshold
 threshold = input('Indicate the threshold for percentage of rejected trials [a number between 0 and 100]');
@@ -26,7 +26,7 @@ excluded_participants = [];
 for ii = 1:size(subjectlist,1)
     % We find the folder containing analysis results for each subject, those are the input for the group analysis
     sub            = subjectlist{ii};
-    input_dir     = fullfile(fileparts(bidsroot), 'results', sub);
+    input_dir     = fullfile(results, sub);
     if exist([input_dir filesep 'badtrials.mat'], 'file') && exist([input_dir filesep 'trials.mat'], 'file')
         load([input_dir filesep 'badtrials.mat']);
         load([input_dir filesep 'trials.mat']);
@@ -51,8 +51,8 @@ save(fullfile(output_dir, 'excludedparticipants.mat'), 'excluded_participants');
 
 %% We loop through all subjects and obtain the results of their timelock analysis
 
-for ii = 1:length(subjectlist)
-    folder                  = [results filesep subjectlist{ii}];
+for ii = 1:length(subjectlist_new)
+    folder                  = [results filesep subjectlist_new{ii}];
     load([folder filesep 'timelock_expected.mat']);
     expected_all(ii)        = { expected }; % We collect all averages in a cell array of structs
     load([folder filesep 'timelock_unexpected.mat']);

@@ -12,9 +12,6 @@ cd(bidsroot)
 t           = readtable([bidsroot filesep 'participants.tsv'], 'FileType', 'text');
 subjectlist = t.participant_id;
 
-% Make a selection to speed testing up
-subjectlist = subjectlist(41:end);
-
 %% Loop over single subjects to do analysis
 for ii = 1:size(subjectlist,1)
     sub = subjectlist{ii};

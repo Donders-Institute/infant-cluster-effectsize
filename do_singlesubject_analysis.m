@@ -191,43 +191,42 @@ if do_artefact_rejection==1 % if the artefact rejection should be conducted
     % Then copy everything back into the full data structure with the 'bad
     % channels' as nans
     
-    cleandata                    = data_artefact_1;
-    for trl = 1:size(cleandata.trial, 2) % Loop through trials
+    ica_cleandata                    = data_artefact_1;
+    for trl = 1:size(ica_cleandata.trial, 2) % Loop through trials
         in=1;
-        for ch = 1:size(cleandata.trial{1,trl},1) % Loop through channels
-            if ~isnan(cleandata.trial{1,trl}(ch,1)) % if the channel was not excluded previously replace the original data with the ICA-cleaned data
-                channellabel = cleandata.label{ch};
+        for ch = 1:size(ica_cleandata.trial{1,trl},1) % Loop through channels
+            if ~isnan(ica_cleandata.trial{1,trl}(ch,1)) % if the channel was not excluded previously replace the original data with the ICA-cleaned data
+                channellabel = ica_cleandata.label{ch};
                 channel_tempcleandata = find(strcmp(tempcleandata.label, channellabel));
-                cleandata.trial{1,trl}(ch,:) = tempcleandata.trial{1,trl}(channel_tempcleandata,:);
+                ica_cleandata.trial{1,trl}(ch,:) = tempcleandata.trial{1,trl}(channel_tempcleandata,:);
                 in=in+1;
             end
         end
     end
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 
     
-    % Finally, interpolate the bad channels
+    % Interpolate bad channels
     
     load(fullfile(scripts, 'selected_neighbours.mat')); % Load the neighbours struct
     
-    % NOTE: this struct was created as in the script 'do_group_analysis' and
-    % simply copied into the analysis folder
+    % NOTE: this struct was created as described in the script 'do_group_analysis' and
+    % copied into the analysis folder
     
-    % we find the electrode positions needed by ft_channelrepair
+    % Then find the electrode positions needed by ft_channelrepair
     
     elec = ft_read_sens('standard_1020.elc', 'senstype', 'eeg');
     
     cfg                        = [];
     cfg.method                 = 'weighted';
-    cfg.badchannel             = cleandata.label(badchannels);
+    cfg.badchannel             = ica_cleandata.label(badchannels);
     cfg.missingchannel         = [];
     cfg.elec                   = elec;
     cfg.neighbours             = selected_neighbours;
-    data_artefact_2            = ft_channelrepair(cfg, cleandata);
+    data_artefact_2            = ft_channelrepair(cfg, ica_cleandata);
     
-    %% Artefact rejection part 3: a final visual artefact rejection
+    %% Artefact rejection part 3: A second pass of visual artefact rejection
     
-    % We now go through each trial to check if no artefacts remain.
-    % Here we can remove some bad trials, but no more bad channels
+    % Go through each trial to check if any artefacts remain and remove them
     
     cfg                 = [];
     cfg.method          = 'trial';  % Or switch to summary if needed
@@ -235,7 +234,7 @@ if do_artefact_rejection==1 % if the artefact rejection should be conducted
     cfg.ylim            = [-100, 100];
     data_cleaned        =  ft_rejectvisual(cfg, data_artefact_2);
     
-    %% Now we find and save rejected trials and channels
+    %% Find and save rejected trials and channels
     
     badtrial_times2     = data_cleaned.cfg.artfctdef.trial.artifact; % this matrix contains start and end times of each rejected trial
     
@@ -245,63 +244,59 @@ if do_artefact_rejection==1 % if the artefact rejection should be conducted
     
     badtrials           = table(begsample, endsample, rejection_round);
     
-    % For the badchannels, we find the labels corresponding to the bad
-    % channels, since it is easier to interpret
-    
+    % Find the corresponding label for each bad channel 
     badchannels_label   = data_artefact_1.label(badchannels, :);
     
-    % Then we save everything
+    % Then save everything
     save(fullfile(output_dir, 'badchannels.mat'), 'badchannels_label');
     save(fullfile(output_dir, 'badchannelnumbers.mat'), 'badchannels');
     save(fullfile(output_dir, 'badtrials.mat'), 'badtrials');
     
     save(fullfile(output_dir, 'data_cleaned.mat'), 'data_cleaned');
     
-end % here we end the if loop to do artefact rejection
+end % end of artefact rejection
 
 %% Re-referencing
 
 if exist([output_dir filesep 'data_cleaned.mat'], 'file')
     load([output_dir filesep 'data_cleaned.mat']);
 else
-    error('artefact rejected data in data_cleaned cannot be found: either artefact rejection has not been done or it has not been saved properly');
+    error('Artefact rejected data in data_cleaned cannot be found: either artefact rejection has not been done or it has not been saved properly');
 end
 
 cfg                     = [];
 cfg.channel             = 'all';
 cfg.reref               = 'yes';
-cfg.implicitref         = 'TP9';            % the implicit (non-recorded) reference channel is added to the data representation
-cfg.refchannel          = {'TP9', 'TP10'}; % the average of these channels is used as the new reference, note that channel corresponds to the right mastoid (M2)
+cfg.implicitref         = 'TP9';            % the implicit reference channel is added to the data representation
+cfg.refchannel          = {'TP9', 'TP10'}; % the average of these channels is used for re-reference
 data_cleaned            = ft_preprocessing(cfg, data_cleaned);
 
-%% Calculate the ERPs for expected (bee) and unexpected (cue) stimuli
+%% Calculate ERPs for standard (bee) and oddball (cue) stimuli
 
-% We first perform timelockanalysis on those trials belonging to the
-% expected condition (i.e. the bees)
-
+% Perform timelockanalysis on standard (bee) stimuli
 cfg                = [];
 cfg.trials         = find(ismember(string(data_cleaned.trialinfo{:,2}), 'bee'));
-expected           = ft_timelockanalysis(cfg, data_cleaned);
+standard           = ft_timelockanalysis(cfg, data_cleaned);
 
-% And to those of the unexpected condition (i.e. the cues)
+% Perform timelockanalysis on oddball (cue) stimuli
 cfg = [];
-cfg.trials         = find(ismember(string(data_cleaned.trialinfo{:,2}), {'update-cue', 'no-update-cue'}));
-unexpected         = ft_timelockanalysis(cfg, data_cleaned);
+cfg.trials          = find(ismember(string(data_cleaned.trialinfo{:,2}), {'update-cue', 'no-update-cue'}));
+oddball             = ft_timelockanalysis(cfg, data_cleaned);
 
-% And we plot the ERP's
+% Plot ERP's
 cfg                = [];
 cfg.layout         = 'EEG1010.lay';
 cfg.interactive    = 'yes';
 cfg.showoutline    = 'yes';
 cfg.showlabels     = 'yes';
-ft_multiplotER(cfg, expected, unexpected)
+ft_multiplotER(cfg, standard, oddball)
 
 % Finally we save the data
 save(fullfile(output_dir, 'timelock_expected.mat'), 'expected');
 save(fullfile(output_dir, 'timelock_unexpected.mat'), 'unexpected');
 savefig(gcf, fullfile(output_dir, 'topoplot_expected_unexpected'));
 
-%% Calculate the ERPs for expected (bee) stimuli over number of repetitions
+%% Calculate the ERPs for standard (bee) stimuli across number of repetitions
 
 % Initiate vectors
 repetition = zeros(size(data_cleaned.trialinfo, 1),1);
@@ -310,11 +305,11 @@ count = 0;
 for tr = 1:size(data_cleaned.trialinfo, 1)
     if tr < size(data_cleaned.trialinfo, 1)
         if ismember(string(data_cleaned.trialinfo{tr,2}), 'bee') && ismember(string(data_cleaned.trialinfo{tr + 1,2}), 'bee')
-            % this bee is followed by another bee of the same type
+            % this stimulus is followed by the same stimulus
             count = count+1;
             repetition(tr,1) = count;
         elseif ismember(string(data_cleaned.trialinfo{tr,2}), 'bee') && ~ismember(string(data_cleaned.trialinfo{tr + 1,2}), 'bee')
-            % This is the last bee of this repetition of bees
+            % This is the last standard stimulus before an oddball stimulus
             count = count+1;
             repetition(tr,1) = count;
             count = 0; % we reset count back
