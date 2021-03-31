@@ -10,18 +10,18 @@ disp (['Doing analysis for subject: ' sub])
 disp('------------------------------------')
 fprintf('\n')
 
-% Start by setting the directory for the results of this specific subject
+% Specifying results directory for this specific subject
 output_dir = fullfile(results, sub);
 
 if ~exist(output_dir, 'dir')
     mkdir(output_dir);
 end
 
-%%  Test whether artefact rejection has been performed already or not
+%%  Test whether artefact rejection has already been performed or not
 
 % Check if the badtrials and badchannels .mat files already exist
 if exist([output_dir filesep 'badtrials.mat'], 'file') && exist([output_dir filesep 'badchannels.mat'], 'file')
-    % The analysis has alreay been performed: we ask the user if it needs
+    % The analysis has alreay been performed: ask the user if it needs
     % to be repeated
     yn = input('Artefact rejection has already been done. Do you want to re-do it? [press y / n]','s');
     if strcmp(yn,'y')
@@ -30,7 +30,8 @@ if exist([output_dir filesep 'badtrials.mat'], 'file') && exist([output_dir file
         do_artefact_rejection = 0;
     end
 else
-    % Artefact rejection has nto been done yet: we have to execute it here
+    % If artefact rejection has not been done yet: specify that it will be
+    % performed
     do_artefact_rejection = 1;
 end
 
@@ -41,7 +42,7 @@ cfg         = [];
 cfg.dataset = [bidsroot filesep sub filesep 'eeg' filesep sub '_task-audiovisual_eeg.vhdr' ];
 hdr         = ft_read_header(cfg.dataset);
 
-%% Now we can extract the trials from the events.tsv
+%% Now extract the trials from the events.tsv
 
 t              = readtable([bidsroot filesep sub filesep 'eeg' filesep sub '_task-audiovisual_events.tsv'], 'FileType', 'text');
 trl            = t( : , 3:8);
@@ -52,20 +53,22 @@ trl            = t( : , 3:8);
 % Column 3: offset
 % Column 4: marker number
 % Column 5: stimulus
-% Column 6: location of the bee
+% Column 6: location of the stimulus on the screen
 
-% Then we re-define trials. We are only interested in bees and cues
-% And take a time window of -500 ms and + 1000 ms
+% Then, re-define trials. For the purpose of this, we focus on standard
+% (bees) and oddball (cues) stimuli,
+% and take a time window of -500 ms and +1000 ms with respect to stimulus
+% onset
 
 stimuli             = {'bee', 'update-cue', 'no-update-cue'};
 str                 = string(trl{:,5});
 index_stimuli       = ismember(str, stimuli);
-trl_cueonly         = trl(index_stimuli, :); % now only bee and cue trials are left
+trl_cueonly         = trl(index_stimuli, :); % now only standeard (bee) and oddball (cue) trials are left
 
 pre_stim_samples    = round(0.5 * hdr.Fs); % The pre-stim period is 0.5 s
 post_stim_samples   = round(1 * hdr.Fs);   % The post-stim period is 1 s
 
-% If the first trial starts to early, we remove it
+% If the first stimulus does not have enough pre-stimulus time for the required window, remove it
 if trl_cueonly{1,1} < pre_stim_samples
     trl_cueonly     = trl_cueonly(2:end, :);
     trl_new         = trl_cueonly;
@@ -73,8 +76,8 @@ else
     trl_new         = trl_cueonly;
 end
 
-trl_new{:,1}        = trl_cueonly{:,1}-pre_stim_samples; % We extract the pre stim samples from begsample (the first colum of trl_cueonly) to find the new begsample
-trl_new{:,2}        = trl_cueonly{:,1}+post_stim_samples; % We add the post stim samples to begsample to find the new endsample
+trl_new{:,1}        = trl_cueonly{:,1}-pre_stim_samples; % subtract the pre-stimulus samples from begsample (onset stimulus) to find the start of the time window of interest
+trl_new{:,2}        = trl_cueonly{:,1}+post_stim_samples; % add the post stim samples to begsample (onset stimulus) to find the end of the time window of interest
 trl_new{:,3}        = - pre_stim_samples;
 
 % Then add the new trials to cfg
@@ -83,12 +86,12 @@ cfg.trl             = trl_new;
 % And save the new trials
 save(fullfile(output_dir, 'trials.mat'), 'trl_new');
 
-%% Pre-processing on the episodes that are defined as trials
+%% Pre-processing on the epochs that are defined as trials
 
 % We perform pre-processing similarly to the published work on this study:
 % Kayhan et al. Developmental Cognitive Neuroscience, 2019
 
-% Concretely: 5 sec padding for high pass filtering at 1 Hz and baseline
+% That is: 5 sec padding for high pass filtering at 1 Hz and baseline
 % correction on the entire window
 
 % Set channels
@@ -104,47 +107,45 @@ data                    = ft_preprocessing(cfg);
 %% Artefact rejection
 
 % We start the artefact rejection, consisting of three phases:
-% 1) A rough visual rejection
-% 2) ICA
-% 3) Finetuning by rejecting trials via visual artefact rejection
+% 1) A first pass visual rejection of large artifacts
+% 2) ICA to detect and correct for artefacts like those caused by
+% eye-movements
+% 3) A second pass of visual artefact rejection to remove any remaining artefacts
 
 % This is only necessary once, if it has been done, we skip this step
-
-if do_artefact_rejection==1
-    % we do the artefact rejection
+if do_artefact_rejection==1 % if the artefact rejection should be conducted
     
-    %% Artefact rejection part 1: a rough visual data rejection using ft_rejectvisual
+    %% Artefact rejection part 1: A first pass visual rejection using ft_rejectvisual
     
-    % We start with trial view to get an overview of the data, then summary
-    % view to reject channels or trials that are way off
+    % Start with trial (or summary) view to get an overview of the data, and to reject channels or trials that show large artefacts
     
     cfg                 = [];
-    cfg.method          = 'trial';  % Or switch to summary if needed
+    cfg.method          = 'trial';  % Or switch to 'summary' if needed
     cfg.keepchannel     = 'nan';    % when rejecting channels, values are replaced by NaN
     cfg.ylim            = [-100, 100];
     data_artefact_1     =  ft_rejectvisual(cfg, data);
     
-    % Let's find the bad channels so we can interpolate them later
+    % Find the bad channels so we can interpolate them later
     badchannels         = find(all(isnan(data_artefact_1.trial{1}), 2));
     
-    % Then we find the rejected trials
+    % Then find the rejected trials
     badtrial_times      = data_artefact_1.cfg.artfctdef.trial.artifact; % this matrix contains start and end times of each rejected trial
     
     %% Artefact rejection part 2: ICA
     
-    % We do this only on the 'good channels, so first we remove the bad channels'
+    % Before doing ICA remove bad channels
     
     channels                 = data_artefact_1.label;
     channels(badchannels, :) = [];
     
-    % Then we set up the cfg struct and perform ICA
+    % Then set up the cfg struct and perform ICA
     
     cfg                      = [];
     cfg.channel              = channels;
-    cfg.method               = 'runica'; % this is the default
+    cfg.method               = 'runica'; 
     comp                     = ft_componentanalysis(cfg, data_artefact_1);
     
-    % Then we plot the first 20 components
+    % Then  plot the first 20 components
     cfg                      = [];
     cfg.component            = 1:20; % We plot the first 20 components
     cfg.layout               = 'EEG1010.lay';
@@ -157,7 +158,7 @@ if do_artefact_rejection==1
     input('Press Enter to continue')
     close all
     
-    %In the end, plot the time course of all components again to check whether the components
+    % Plot the time course of all components again to check whether the components
     % you want to remove indeed look like artifacts over time
     
     cfg                      = [];
@@ -173,7 +174,7 @@ if do_artefact_rejection==1
     prompt                       = 'Which components do you want to reject [enter row vector]';
     rejcom                       = input(prompt);
     
-    % Now we exlude all channels excluded during the first visual artefact rejection (containing NaNs)
+    % Also exclude all bad channels specified during the first visual artefact rejection (containing NaNs)
     
     exclude                      = find(~ismember(data_artefact_1.label, channels));
     tempdata                     = data_artefact_1;
@@ -187,14 +188,14 @@ if do_artefact_rejection==1
     cfg.channel                  = channels;
     tempcleandata                = ft_rejectcomponent(cfg, comp, tempdata);
     
-    % Then we copy these back into the full data structure with the 'bad
+    % Then copy everything back into the full data structure with the 'bad
     % channels' as nans
     
     cleandata                    = data_artefact_1;
     for trl = 1:size(cleandata.trial, 2) % Loop through trials
         in=1;
-        for ch = 1:size(cleandata.trial{1,trl},1) % Loop throuch channels
-            if ~isnan(cleandata.trial{1,trl}(ch,1)) % if the channels is not a bad channels with only isnans, we replace with the clean data
+        for ch = 1:size(cleandata.trial{1,trl},1) % Loop through channels
+            if ~isnan(cleandata.trial{1,trl}(ch,1)) % if the channel was not excluded previously replace the original data with the ICA-cleaned data
                 channellabel = cleandata.label{ch};
                 channel_tempcleandata = find(strcmp(tempcleandata.label, channellabel));
                 cleandata.trial{1,trl}(ch,:) = tempcleandata.trial{1,trl}(channel_tempcleandata,:);
@@ -202,9 +203,9 @@ if do_artefact_rejection==1
             end
         end
     end
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    
-    % Finally, we interpolate the bad channels
+    % Finally, interpolate the bad channels
     
     load(fullfile(scripts, 'selected_neighbours.mat')); % Load the neighbours struct
     
