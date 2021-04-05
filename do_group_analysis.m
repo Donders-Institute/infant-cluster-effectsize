@@ -310,6 +310,16 @@ cfg.uvar                  = 2; % the 2nd row in cfg.design contains the subject 
 stat_expected_unexpected_clusstats  = ft_timelockstatistics(cfg, expected_all{:}, unexpected_all{:});
 
 %% Plot the results
+figure
+subplot(2,1,1)
+imagesc(stat_expected_unexpected_clusstats.time, 1:size(stat_expected_unexpected_clusstats.label,1), stat_expected_unexpected_clusstats.prob)
+colorbar
+title(['probability per channel x time']);
+subplot(2,1,2)
+imagesc(stat_expected_unexpected_clusstats.time, 1:size(stat_expected_unexpected_clusstats.label,1), stat_expected_unexpected_clusstats.stat)
+colorbar
+title(['t-values per channel x time']);
+
 % For this purpose, first calculate the difference between conditions
 cfg                       = [];
 cfg.operation             = 'subtract';
@@ -484,6 +494,10 @@ plot(grandavg_unexpected.time,grandavg_unexpected.avg(Pos.row(idx),:),colour_cod
 mean_unexpected = grandavg_unexpected.avg(Pos.row(idx),:);
 se_unexpected = se_grandavg_unexpected(Pos.row(idx),:);
 patch([grandavg_expected.time, fliplr(grandavg_expected.time)], [mean_unexpected-se_unexpected, fliplr(mean_unexpected+se_unexpected)],  shaded_area{4}, 'edgecolor', 'none', 'FaceAlpha', .3);
+idx_pos_time = find(stat_expected_unexpected_clusstats.posclusterslabelmat(Pos.row(idx),:)==1);
+hold all
+patch([grandavg_expected.time(idx_pos_time),fliplr(grandavg_expected.time(idx_pos_time))], [(ones(size(grandavg_expected.time(idx_pos_time),2),1)*-15)', fliplr((ones(size(grandavg_expected.time(idx_pos_time),2),1)*15)')], shaded_area{8}, 'edgecolor', 'none', 'FaceAlpha', .1)
+
 
 xlabel('Time [s]');
 ylabel('Amplitude [mV]');
@@ -507,6 +521,9 @@ plot(grandavg_unexpected.time,grandavg_unexpected.avg(Neg.row(idx),:),colour_cod
 mean_unexpected = grandavg_unexpected.avg(Neg.row(idx),:);
 se_unexpected = se_grandavg_unexpected(Neg.row(idx),:);
 patch([grandavg_expected.time, fliplr(grandavg_expected.time)], [mean_unexpected-se_unexpected, fliplr(mean_unexpected+se_unexpected)],  shaded_area{4}, 'edgecolor', 'none', 'FaceAlpha', .3);
+idx_neg_time = find(stat_expected_unexpected_clusstats.negclusterslabelmat(Neg.row(idx),:)==1);
+hold all
+patch([grandavg_expected.time(idx_neg_time),fliplr(grandavg_expected.time(idx_neg_time))], [(ones(size(grandavg_expected.time(idx_neg_time),2),1)*-15)', fliplr((ones(size(grandavg_expected.time(idx_neg_time),2),1)*15)')], shaded_area{8}, 'edgecolor', 'none', 'FaceAlpha', .1)
 
 xlabel('Time [s]');
 ylabel('Amplitude [mV]');
