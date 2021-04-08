@@ -531,6 +531,67 @@ ylim([-15 15])
 line([-.5 1],[ 0 0], 'Color', [0 0 0],'LineStyle', ':')
 title(['Maximum effect of negative cluster at channel ' grandavg_expected.label(Neg.row(idx))])
 
+%% Plot effect size topography highlighting cluster-based permutation test results
+cfg = [];
+cfg.parameter = 'individual';
+cfg.method = 'analytic';
+cfg.statistic = 'cohensd';
+cfg.ivar = 1;
+cfg.uvar = 2;
+
+num_sub = length(expected_all);
+cfg.design = [ones(1,num_sub) ones(1,num_sub)*2 
+    1:num_sub 1:num_sub];
+
+effect_all_with_mask = ft_timelockstatistics(cfg, grandavg_expected_all, grandavg_unexpected_all);
+
+effect_all_with_mask.mask = stat_expected_unexpected_clusstats.mask;
+
+cfg = [];
+cfg.layout    = 'EEG1010.lay';
+cfg.parameter = 'cohensd';
+cfg.maskparameter = 'mask';
+cfg.linecolor = [0 0 0];
+ft_multiplotER(cfg,effect_all_with_mask)
+
+%% Calculate effect size on rectangle around cluster results
+% largest positive cluster
+%row = channel
+%col = time
+[Pos.row,Pos.col] = find(stat_expected_unexpected_clusstats.posclusterslabelmat==1);
+idx_time_min = min(Pos.col);
+idx_time_max = max(Pos.col);
+
+rect_t_min = stat_expected_unexpected_clusstats.time(Pos.col(idx_time_min));
+rect_t_max = stat_expected_unexpected_clusstats.time(Pos.col(idx_time_max));
+
+rect_chan = stat_expected_unexpected_clusstats.label(any(stat_expected_unexpected_clusstats.mask(:,idx_time_min:idx_time_max),2));
+
+% rect_chan =rect_chan([1:14,16:end],1)
+cfg = [];
+cfg.channel = rect_chan;
+cfg.latency = [rect_t_min rect_t_max];
+cfg.avgoverchan = 'yes';
+cfg.avgovertime = 'yes';
+cfg.method = 'analytic';
+cfg.statistic = 'cohensd';
+cfg.ivar = 1;
+cfg.uvar = 2;
+
+num_sub = length(expected_all);
+cfg.design = [ones(1,num_sub) ones(1,num_sub)*2 
+    1:num_sub 1:num_sub];
+
+effect_rectangle_pos = ft_timelockstatistics(cfg, grandavg_expected_all, grandavg_unexpected_all);
+
+fprintf('\n')
+disp('~~~~~')
+disp(['Contrast: Standard vs. Oddball: '])
+disp(['Effect size Cohens d of average on rectangle around positive cluster is ' num2str(effect_rectangle_pos.cohensd)])
+disp('~~~~~')
+fprintf('\n')
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% NOTE add negative cluster
+
 %% Finally we perform clusterstats for the repetitions of expected stimuli
 
 if exist([output_dir filesep 'selected_neighbours.mat'], 'file')
