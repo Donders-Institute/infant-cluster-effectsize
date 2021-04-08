@@ -58,12 +58,6 @@ for ii = 1:length(subjectlist_new)
     expected_all(ii)        = { expected }; % We collect all averages in a cell array of structs
     load([folder filesep 'timelock_unexpected.mat']);
     unexpected_all(ii)      = { unexpected };
-%     load([folder filesep 'timelock_repetition1.mat']);
-%     repetition1_all(ii)     = { repetition1 };
-%     load([folder filesep 'timelock_repetition2.mat']);
-%     repetition2_all(ii)     = { repetition2 };
-%     load([folder filesep 'timelock_repetition3.mat']);
-%     repetition3_all(ii)     = { repetition3 };
 end
 
 %% calculate grand average for the expected and unexpected stimuli
@@ -87,31 +81,6 @@ ft_multiplotER(cfg, grandavg_expected, grandavg_unexpected);
 save(fullfile(output_dir, 'grandaverage_expected.mat'), 'grandavg_expected');
 save(fullfile(output_dir, 'grandaverage_unexpected.mat'), 'grandavg_unexpected');
 savefig(gcf, fullfile(output_dir, 'topoplot_grandaverage_expected_unexpected'));
-
-
-%% Then the same for the repetitions
-
-cfg                       = [];
-cfg.channel               = 'all';
-cfg.latency               = 'all';
-cfg.parameter             = 'avg';
-grandavg_repetition1      = ft_timelockgrandaverage(cfg, repetition1_all{:});
-grandavg_repetition2      = ft_timelockgrandaverage(cfg, repetition2_all{:});
-grandavg_repetition3      = ft_timelockgrandaverage(cfg, repetition3_all{:});
-
-% Then we plot the results
-cfg                       = [];
-cfg.layout                = 'EEG1010.lay';
-cfg.interactive           = 'yes';
-cfg.showoutline           = 'yes';
-cfg.showlabels            = 'yes';
-ft_multiplotER(cfg, grandavg_repetition1, grandavg_repetition2, grandavg_repetition3);
-
-% And save the data
-save(fullfile(output_dir, 'grandaverage_repetition1.mat'), 'grandavg_repetition1');
-save(fullfile(output_dir, 'grandaverage_repetition2.mat'), 'grandavg_repetition2');
-save(fullfile(output_dir, 'grandaverage_repetition3.mat'), 'grandavg_repetition3');
-savefig(gcf, fullfile(output_dir, 'topoplot_grandaverage_repetitions_expected'));
 
 %% Now we perform statistics: permutation based statistics on expected versus unexpected stimuli
 
@@ -420,7 +389,6 @@ save(fullfile(output_dir, 'EffectSize_Pos.mat'), 'Pos');
 % Then for the negative clustesr
 effect_window_neg = stat_expected_unexpected_clusstats.negclusterslabelmat==1;
 
-
 for ii = 1:size(subjectlist_new,1)
     folder                  = [results filesep subjectlist_new{ii}];
     load([folder filesep 'timelock_expected.mat']);
@@ -477,8 +445,8 @@ colour_code = {'b','g', 'm', 'r', 'c', 'k', ':k', 'g', 'm'};
 shaded_area = {[0, 0, 1],[0, 1, 0],[1 0 1], [1 0 0], [0 1 1], [0, 1, 1],[0, 1, 0],[0, 0, 0],[0, 0, 0]};
 
 % Plot 
-figure;
 % ERP of channel with maximum effect size of positive Cluster
+figure;
 subplot(1,2,1)
 % Condition 1
 plot(grandavg_expected.time,grandavg_expected.avg(Pos.row(idx),:),colour_code{1}, 'LineWidth', 1.5)
@@ -497,7 +465,6 @@ patch([grandavg_expected.time, fliplr(grandavg_expected.time)], [mean_unexpected
 idx_pos_time = find(stat_expected_unexpected_clusstats.posclusterslabelmat(Pos.row(idx),:)==1);
 hold all
 patch([grandavg_expected.time(idx_pos_time),fliplr(grandavg_expected.time(idx_pos_time))], [(ones(size(grandavg_expected.time(idx_pos_time),2),1)*-15)', fliplr((ones(size(grandavg_expected.time(idx_pos_time),2),1)*15)')], shaded_area{8}, 'edgecolor', 'none', 'FaceAlpha', .1)
-
 
 xlabel('Time [s]');
 ylabel('Amplitude [mV]');
@@ -568,19 +535,18 @@ rect_t_max = stat_expected_unexpected_clusstats.time(Pos.col(idx_time_max));
 rect_chan = stat_expected_unexpected_clusstats.label(any(stat_expected_unexpected_clusstats.mask(:,idx_time_min:idx_time_max),2));
 
 % rect_chan =rect_chan([1:14,16:end],1)
-cfg = [];
-cfg.channel = rect_chan;
-cfg.latency = [rect_t_min rect_t_max];
-cfg.avgoverchan = 'yes';
-cfg.avgovertime = 'yes';
-cfg.method = 'analytic';
-cfg.statistic = 'cohensd';
-cfg.ivar = 1;
-cfg.uvar = 2;
-
-num_sub = length(expected_all);
-cfg.design = [ones(1,num_sub) ones(1,num_sub)*2 
-    1:num_sub 1:num_sub];
+cfg                     = [];
+cfg.channel             = rect_chan;
+cfg.latency             = [rect_t_min rect_t_max];
+cfg.avgoverchan         = 'yes';
+cfg.avgovertime         = 'yes';
+cfg.method              = 'analytic';
+cfg.statistic           = 'cohensd';
+cfg.ivar                = 1;
+cfg.uvar                = 2;
+Nsub                    = length(subjectlist_new);
+cfg.design(1,1:2*Nsub)  = [ones(1,Nsub) 2*ones(1,Nsub)];
+cfg.design(2,1:2*Nsub)  = [1:Nsub 1:Nsub];
 
 effect_rectangle_pos = ft_timelockstatistics(cfg, grandavg_expected_all, grandavg_unexpected_all);
 
@@ -590,50 +556,38 @@ disp(['Contrast: Standard vs. Oddball: '])
 disp(['Effect size Cohens d of average on rectangle around positive cluster is ' num2str(effect_rectangle_pos.cohensd)])
 disp('~~~~~')
 fprintf('\n')
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% NOTE add negative cluster
 
-%% Finally we perform clusterstats for the repetitions of expected stimuli
+% Negative cluster
+[Neg.row,Neg.col] = find(stat_expected_unexpected_clusstats.negclusterslabelmat==1);
+idx_time_min = min(Neg.col);
+idx_time_max = max(Neg.col);
 
-if exist([output_dir filesep 'selected_neighbours.mat'], 'file')
-    load([output_dir filesep 'selected_neighbours.mat']);
-end
+rect_t_min = stat_expected_unexpected_clusstats.time(Neg.col(idx_time_min));
+rect_t_max = stat_expected_unexpected_clusstats.time(Neg.col(idx_time_max));
 
-cfg                       = [];
-cfg.channel               = 'EEG';
-cfg.neighbours            = selected_neighbours; % defined as above
-cfg.parameter             = 'avg';
-cfg.method                = 'montecarlo';
-cfg.statistic             = 'depsamplesregrT'; % Perhaps Spearman would be better here
-cfg.alpha                 = 0.05;
-cfg.correctm              = 'cluster';
-cfg.correcttail           = 'prob';
-cfg.numrandomization      = 1024; % Enlarge this when doing real analysis
+rect_chan = stat_expected_unexpected_clusstats.label(any(stat_expected_unexpected_clusstats.mask(:,idx_time_min:idx_time_max),2));
 
-%design matrix
-Nsub                      = length(subjectlist);
-Nrep                      = 3; % three repetitions or "time points"
-design                    = zeros(2, Nrep*Nsub);
-design(1, :)              = repmat(1:Nsub, 1, Nrep);  % subject
-design(2, :)              = repelem(1:Nrep, Nsub);  % session
-cfg.design                = design;
-cfg.uvar                  = 1;  % the unit variable: subjects
-cfg.ivar                  = 2;  % the independent variable, here number of repetitions
+% rect_chan =rect_chan([1:14,16:end],1)
+cfg                     = [];
+cfg.channel             = rect_chan;
+cfg.latency             = [rect_t_min rect_t_max];
+cfg.avgoverchan         = 'yes';
+cfg.avgovertime         = 'yes';
+cfg.method              = 'analytic';
+cfg.statistic           = 'cohensd';
+cfg.ivar                = 1;
+cfg.uvar                = 2;
+Nsub                    = length(subjectlist_new);
+cfg.design(1,1:2*Nsub)  = [ones(1,Nsub) 2*ones(1,Nsub)];
+cfg.design(2,1:2*Nsub)  = [1:Nsub 1:Nsub];
 
-stat_repetitions_clusstats  = ft_timelockstatistics(cfg, repetition1_all{:}, repetition2_all{:}, repetition3_all{:});
+effect_rectangle_neg = ft_timelockstatistics(cfg, grandavg_expected_all, grandavg_unexpected_all);
 
-% Then plot the result
-
-cfg                       = [];
-cfg.style                 = 'blank';
-cfg.layout                = 'EEG1010.lay';
-cfg.highlight             = 'on';
-cfg.highlightchannel      = find(stat_repetitions_clusstats.mask);
-cfg.comment               = 'no';
-figure; ft_topoplotER(cfg, grandavg_repetition1)
-
-% And save the data
-save(fullfile(output_dir, 'stat_repetitions_clusstats.mat'), 'stat_repetitions_clusstats');
-savefig(gcf, fullfile(output_dir, 'topoplot_stat_repetitions_clusstats'));
-
+fprintf('\n')
+disp('~~~~~')
+disp(['Contrast: Standard vs. Oddball: '])
+disp(['Effect size Cohens d of average on rectangle around negative cluster is ' num2str(effect_rectangle_neg.cohensd)])
+disp('~~~~~')
+fprintf('\n')
 
 close all

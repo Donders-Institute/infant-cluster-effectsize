@@ -111,7 +111,7 @@ data                    = ft_preprocessing(cfg);
 % 2) ICA to detect and correct for artefacts like those caused by
 % eye-movements
 % 3) A second pass of visual artefact rejection to remove any remaining artefacts
-
+% 4) interpolate
 % This is only necessary once, if it has been done, we skip this step
 if do_artefact_rejection==1 % if the artefact rejection should be conducted
     
@@ -124,17 +124,14 @@ if do_artefact_rejection==1 % if the artefact rejection should be conducted
     cfg.keepchannel     = 'nan';    % when rejecting channels, values are replaced by NaN
     cfg.ylim            = [-100, 100];
     data_artefact_1     =  ft_rejectvisual(cfg, data);
-    
-    % Find the bad channels so we can interpolate them later
-    badchannels         = find(all(isnan(data_artefact_1.trial{1}), 2));
-    
+       
     % Then find the rejected trials
     badtrial_times      = data_artefact_1.cfg.artfctdef.trial.artifact; % this matrix contains start and end times of each rejected trial
     
     %% Artefact rejection part 2: ICA
     
     % Before doing ICA remove bad channels
-    
+    badchannels             = find(all(isnan(data_artefact_1.trial{1}), 2));
     channels                 = data_artefact_1.label;
     channels(badchannels, :) = [];
     
@@ -204,26 +201,7 @@ if do_artefact_rejection==1 % if the artefact rejection should be conducted
         end
     end
  
-    
-    % Interpolate bad channels
-    
-    load(fullfile(scripts, 'selected_neighbours.mat')); % Load the neighbours struct
-    
-    % NOTE: this struct was created as described in the script 'do_group_analysis' and
-    % copied into the analysis folder
-    
-    % Then find the electrode positions needed by ft_channelrepair
-    
-    elec = ft_read_sens('standard_1020.elc', 'senstype', 'eeg');
-    
-    cfg                        = [];
-    cfg.method                 = 'weighted';
-    cfg.badchannel             = ica_cleandata.label(badchannels);
-    cfg.missingchannel         = [];
-    cfg.elec                   = elec;
-    cfg.neighbours             = selected_neighbours;
-    data_artefact_2            = ft_channelrepair(cfg, ica_cleandata);
-    
+        
     %% Artefact rejection part 3: A second pass of visual artefact rejection
     
     % Go through each trial to check if any artefacts remain and remove them
@@ -243,9 +221,30 @@ if do_artefact_rejection==1 % if the artefact rejection should be conducted
     rejection_round     = [repmat({'Visual rejection 1'}, size(badtrial_times, 1), 1); repmat({'Visual rejection 2'}, size(badtrial_times2,1), 1)];
     
     badtrials           = table(begsample, endsample, rejection_round);
+       
+    % Interpolate bad channels
+    % Find the bad channels
+    badchannels         = find(all(isnan(data_cleaned.trial{1}), 2));
     
     % Find the corresponding label for each bad channel 
-    badchannels_label   = data_artefact_1.label(badchannels, :);
+    badchannels_label   = data_cleaned.label(badchannels, :);
+    
+    load(fullfile(scripts, 'selected_neighbours.mat')); % Load the neighbours struct
+    
+    % NOTE: this struct was created as described in the script 'do_group_analysis' and
+    % copied into the analysis folder
+    
+    % Then find the electrode positions needed by ft_channelrepair
+    
+    elec = ft_read_sens('standard_1020.elc', 'senstype', 'eeg');
+    
+    cfg                        = [];
+    cfg.method                 = 'weighted';
+    cfg.badchannel             = data_cleaned.label(badchannels);
+    cfg.missingchannel         = [];
+    cfg.elec                   = elec;
+    cfg.neighbours             = selected_neighbours;
+    data_cleaned               = ft_channelrepair(cfg, data_cleaned);
     
     % Then save everything
     save(fullfile(output_dir, 'badchannels.mat'), 'badchannels_label');
@@ -276,12 +275,12 @@ data_cleaned            = ft_preprocessing(cfg, data_cleaned);
 % Perform timelockanalysis on standard (bee) stimuli
 cfg                = [];
 cfg.trials         = find(ismember(string(data_cleaned.trialinfo{:,2}), 'bee'));
-standard           = ft_timelockanalysis(cfg, data_cleaned);
+expected           = ft_timelockanalysis(cfg, data_cleaned);
 
 % Perform timelockanalysis on oddball (cue) stimuli
 cfg = [];
 cfg.trials          = find(ismember(string(data_cleaned.trialinfo{:,2}), {'update-cue', 'no-update-cue'}));
-oddball             = ft_timelockanalysis(cfg, data_cleaned);
+unexpected             = ft_timelockanalysis(cfg, data_cleaned);
 
 % Plot ERP's
 cfg                = [];
@@ -289,7 +288,7 @@ cfg.layout         = 'EEG1010.lay';
 cfg.interactive    = 'yes';
 cfg.showoutline    = 'yes';
 cfg.showlabels     = 'yes';
-ft_multiplotER(cfg, standard, oddball)
+ft_multiplotER(cfg, expected, unexpected)
 
 % Finally we save the data
 save(fullfile(output_dir, 'timelock_expected.mat'), 'expected');
