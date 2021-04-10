@@ -5,9 +5,6 @@ clear
 do_setpath
 
 %% Find subject info from BIDS data
-
-cd(bidsroot)
-
 % Read the participants tsv to find subject info
 t           = readtable([bidsroot filesep 'participants.tsv'], 'FileType', 'text');
 subjectlist = t.participant_id;

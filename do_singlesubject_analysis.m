@@ -83,14 +83,13 @@ trl_new{:,3}        = - pre_stim_samples;
 % Then add the new trials to cfg
 cfg.trl             = trl_new;
 
-% And save the new trials
+% Save the new trials
 save(fullfile(output_dir, 'trials.mat'), 'trl_new');
 
 %% Pre-processing on the epochs that are defined as trials
 
 % We perform pre-processing similarly to the published work on this study:
 % Kayhan et al. Developmental Cognitive Neuroscience, 2019
-
 % That is: 5 sec padding for high pass filtering at 1 Hz and baseline
 % correction on the entire window
 
@@ -111,9 +110,146 @@ data                    = ft_preprocessing(cfg);
 % 2) ICA to detect and correct for artefacts like those caused by
 % eye-movements
 % 3) A second pass of visual artefact rejection to remove any remaining artefacts
-% 4) interpolate
+% 4) Interpolating channels
 % This is only necessary once, if it has been done, we skip this step
-if do_artefact_rejection==1 % if the artefact rejection should be conducted
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Define neighbours: 
+% To interpolate neighbouring channels and to run
+% cluster-based statistic including channels first find neighbouring
+% channels for the current recoding layout.
+% This was done once with the code below. Note, that this is now commented out as this struct only needs to created once
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% %% To start read in the channels used in the EEG study
+
+% label = expected.cfg.channel;
+%
+% % Read sensor positions from the standard 1020 3D format available on fieldtrip
+% elec = ft_read_sens('standard_1020.elc', 'senstype', 'eeg');
+%
+% if exist('newlayout')
+%     clear newlayout
+% end
+%
+% % Now loop through all used channels, to create a new layout struct
+% % containing only those channels used in this particular study
+%
+% for ii = 1:length(label)
+%       index                     = strcmp(label{ii}, elec.label);
+%       newlayout.chanpos(ii, :)  = elec.chanpos(index, :);
+%       newlayout.chantype{ii, 1} = elec.chantype{index};
+%       newlayout.chanunit{ii, 1} = elec.chanunit{index};
+%       newlayout.elecpos(ii, :)  = elec.elecpos(index, :);
+%       newlayout.label{ii, 1}    = elec.label{index};
+%       newlayout.type            = elec.type;
+%       newlayout.unit            = elec.unit;
+% end
+%
+% % Then plot this in 3D
+%
+% fig = ft_plot_sens(newlayout, 'label', 'label');
+%
+% %% Draw lines in the figure to connect channels and create a neighbours struct
+%
+% % Loop through all channels
+%
+% for cc = 1:length(newlayout.label)
+%
+%      % Find the corresponding label
+%      channel_to_connect = newlayout.label{cc};
+%
+%      % Allow the user to provide a cell array of channels to connect
+%      % the selected channel to
+%
+%      fprintf('\n')
+%      disp(['channel to connect = ' channel_to_connect ', channel number ' num2str(cc) ' of ' num2str(length(newlayout.label))]);
+%      text = 'provide a row cell array named channels to connect to channel to connect: ';
+%      channels = input(text);
+%
+%      % Create a line between the selected channel and the channels
+%      % to connect that channel to
+%
+%      connect    = find(strcmp(newlayout.label, channel_to_connect));
+%
+%      for ci = 1:length(channels)
+%          connect1    = find(strcmp(newlayout.label, channels(ci)));
+%          linepoints  = [newlayout.chanpos(connect, :); newlayout.chanpos(connect1, :)];
+%          line(linepoints(:,1), linepoints(:,2), linepoints(:,3));
+%      end
+%
+%      % Create the neighbours struct
+%
+%      selected_neighbours(cc).label       = channel_to_connect;
+%      selected_neighbours(cc).neighblabel = channels;
+%
+%  end
+%
+% % Save the neighbours struct and created image
+% save(fullfile(scripts, 'selected_neighbours.mat'), 'selected_neighbours');
+% savefig(gcf, fullfile(scripts, 'selected_neighbours_plot'));
+%
+% % When this step of the code is finished, comment it out to continue with
+% % manual optimization in the next step
+%
+% %%  Last step: make some manual changes if necessary
+%
+% if exist('selected_neighbours.mat')
+%     load('selected_neighbours.mat');
+% end
+%
+% if exist('selected_neighbours_plot.fig')
+%     openfig('selected_neighbours_plot.fig');
+% end
+%
+% % Add a line between two points that were missed by the previous step:
+%
+% connect     = find(strcmp(newlayout.label, 'Fp1'));
+% connect1    = find(strcmp(newlayout.label, 'Fp2'));
+% linepoints  = [newlayout.chanpos(connect, :); newlayout.chanpos(connect1, :)];
+% line(linepoints(:,1), linepoints(:,2), linepoints(:,3));
+%
+% % And add the connection to the neighours struct
+% selected_neighbours(1).neighblabel  = [selected_neighbours(1).neighblabel, {'Fp2'}];
+% selected_neighbours(2).neighblabel  = [selected_neighbours(2).neighblabel, {'Fp1'}];
+%
+% % Then do a sanity check, make sure that neighbours are fully bidirectional
+% % I.e. if Cz has FCz as a neighbour, then FCz should have Cz as a neighbour
+%
+% for ii = 1:length(selected_neighbours)
+%     channel = selected_neighbours(ii).label;
+%     for tt  = 1:length(selected_neighbours(ii).neighblabel)
+%         idx = find(strcmp(label, selected_neighbours(ii).neighblabel{tt}));
+%         if sum(strcmp(selected_neighbours(idx).neighblabel, channel))==0
+%           selected_neighbours(idx).neighblabel = [selected_neighbours(idx).neighblabel, {channel}];
+%         end
+%     end
+% end
+%
+% % And replot so that all lines are now corrected
+%
+% close all
+%
+% fig = ft_plot_sens(newlayout, 'label', 'label');
+%
+% for ii = 1:length(selected_neighbours)
+%     channel         = selected_neighbours(ii).label;
+%     connect         = find(strcmp(newlayout.label, channel));
+%     for tt          = 1:length(selected_neighbours(ii).neighblabel)
+%         connect1    = find(strcmp(newlayout.label, selected_neighbours(ii).neighblabel{tt}));
+%         linepoints  = [newlayout.chanpos(connect, :); newlayout.chanpos(connect1, :)];
+%         line(linepoints(:,1), linepoints(:,2), linepoints(:,3));
+%     end
+% end
+%
+% % Finally, save this plot and new neighbours struct
+%
+% save(fullfile(scripts, 'selected_neighbours.mat'), 'selected_neighbours');
+% savefig(gcf, fullfile(scripts, 'selected_neighbours_plot'));
+
+
+if do_artefact_rejection==1 % if the artefact rejection has not been conducted yet
     
     %% Artefact rejection part 1: A first pass visual rejection using ft_rejectvisual
     
@@ -172,7 +308,6 @@ if do_artefact_rejection==1 % if the artefact rejection should be conducted
     rejcom                       = input(prompt);
     
     % Also exclude all bad channels specified during the first visual artefact rejection (containing NaNs)
-    
     exclude                      = find(~ismember(data_artefact_1.label, channels));
     tempdata                     = data_artefact_1;
     for trl=1:size(tempdata.trial, 2)
@@ -210,9 +345,9 @@ if do_artefact_rejection==1 % if the artefact rejection should be conducted
     cfg.method          = 'trial';  % Or switch to summary if needed
     cfg.keepchannel     = 'nan';    % when rejecting channels, values are replaced by NaN
     cfg.ylim            = [-100, 100];
-    data_cleaned        =  ft_rejectvisual(cfg, data_artefact_2);
+    data_cleaned        =  ft_rejectvisual(cfg, ica_cleandata);
     
-    %% Find and save rejected trials and channels
+    %% Interpolate bad channel and save info on rejected trials and channels
     
     badtrial_times2     = data_cleaned.cfg.artfctdef.trial.artifact; % this matrix contains start and end times of each rejected trial
     
@@ -221,8 +356,7 @@ if do_artefact_rejection==1 % if the artefact rejection should be conducted
     rejection_round     = [repmat({'Visual rejection 1'}, size(badtrial_times, 1), 1); repmat({'Visual rejection 2'}, size(badtrial_times2,1), 1)];
     
     badtrials           = table(begsample, endsample, rejection_round);
-       
-    % Interpolate bad channels
+          
     % Find the bad channels
     badchannels         = find(all(isnan(data_cleaned.trial{1}), 2));
     
@@ -230,10 +364,7 @@ if do_artefact_rejection==1 % if the artefact rejection should be conducted
     badchannels_label   = data_cleaned.label(badchannels, :);
     
     load(fullfile(scripts, 'selected_neighbours.mat')); % Load the neighbours struct
-    
-    % NOTE: this struct was created as described in the script 'do_group_analysis' and
-    % copied into the analysis folder
-    
+       
     % Then find the electrode positions needed by ft_channelrepair
     
     elec = ft_read_sens('standard_1020.elc', 'senstype', 'eeg');
@@ -271,86 +402,40 @@ cfg.refchannel          = {'TP9', 'TP10'}; % the average of these channels is us
 data_cleaned            = ft_preprocessing(cfg, data_cleaned);
 
 %% Calculate ERPs for standard (bee) and oddball (cue) stimuli
+no_trls_left = [];
 
 % Perform timelockanalysis on standard (bee) stimuli
 cfg                = [];
 cfg.trials         = find(ismember(string(data_cleaned.trialinfo{:,2}), 'bee'));
-expected           = ft_timelockanalysis(cfg, data_cleaned);
+if ~isempty(cfg.trials) % if there are trials in this condition
+    standard           = ft_timelockanalysis(cfg, data_cleaned);
+    % Save the data
+    save(fullfile(output_dir, 'timelock_standard.mat'), 'standard');
+else
+    no_trls_left = 1;
+end
 
 % Perform timelockanalysis on oddball (cue) stimuli
 cfg = [];
 cfg.trials          = find(ismember(string(data_cleaned.trialinfo{:,2}), {'update-cue', 'no-update-cue'}));
-unexpected             = ft_timelockanalysis(cfg, data_cleaned);
-
-% Plot ERP's
-cfg                = [];
-cfg.layout         = 'EEG1010.lay';
-cfg.interactive    = 'yes';
-cfg.showoutline    = 'yes';
-cfg.showlabels     = 'yes';
-ft_multiplotER(cfg, expected, unexpected)
-
-% Finally we save the data
-save(fullfile(output_dir, 'timelock_expected.mat'), 'expected');
-save(fullfile(output_dir, 'timelock_unexpected.mat'), 'unexpected');
-savefig(gcf, fullfile(output_dir, 'topoplot_expected_unexpected'));
-
-%% Calculate the ERPs for standard (bee) stimuli across number of repetitions
-
-% Initiate vectors
-repetition = zeros(size(data_cleaned.trialinfo, 1),1);
-count = 0;
-
-for tr = 1:size(data_cleaned.trialinfo, 1)
-    if tr < size(data_cleaned.trialinfo, 1)
-        if ismember(string(data_cleaned.trialinfo{tr,2}), 'bee') && ismember(string(data_cleaned.trialinfo{tr + 1,2}), 'bee')
-            % this stimulus is followed by the same stimulus
-            count = count+1;
-            repetition(tr,1) = count;
-        elseif ismember(string(data_cleaned.trialinfo{tr,2}), 'bee') && ~ismember(string(data_cleaned.trialinfo{tr + 1,2}), 'bee')
-            % This is the last standard stimulus before an oddball stimulus
-            count = count+1;
-            repetition(tr,1) = count;
-            count = 0; % we reset count back
-        end
-    elseif ismember(string(data_cleaned.trialinfo{tr,2}), 'bee')
-        % This is the last bee of the experiment
-        count = count+1;
-        repetition(tr,1) = count;
-    end
+if ~isempty(cfg.trials) % if there are trials in this condition
+    oddball             = ft_timelockanalysis(cfg, data_cleaned);
+    % Save the data
+    save(fullfile(output_dir, 'timelock_oddball.mat'), 'oddball');
+else
+    no_trls_left = 1;
 end
 
-% Now repetition contains the "repetition number" of the bee, i.e. how many
-% times this specific stimulus has been shown uninterrupted by unexpted stimuli
-
-cfg                = [];
-cfg.trials         = find(repetition==1);
-repetition1        = ft_timelockanalysis(cfg, data_cleaned);
-%repetition1 contains the average of trials where the bee is shown for the first time
-
-cfg                = [];
-cfg.trials         = find(repetition==2);
-repetition2        = ft_timelockanalysis(cfg, data_cleaned);
-%repetition2 contains the average of trials where the bee is shown for the second time
-
-cfg                = [];
-cfg.trials         = find(repetition==3);
-repetition3        = ft_timelockanalysis(cfg, data_cleaned);
-%repetition3 contains the average of trials where the bee is shown for the third time
-
-% And we plot the ERP's
-cfg                = [];
-cfg.layout         = 'EEG1010.lay';
-cfg.interactive    = 'yes';
-cfg.showoutline    = 'yes';
-cfg.showlabels     = 'yes';
-ft_multiplotER(cfg, repetition1, repetition2, repetition3)
-
-% Now we save the data
-save(fullfile(output_dir, 'timelock_repetition1.mat'), 'repetition1');
-save(fullfile(output_dir, 'timelock_repetition2.mat'), 'repetition2');
-save(fullfile(output_dir, 'timelock_repetition3.mat'), 'repetition3');
-savefig(gcf, fullfile(output_dir, 'topoplot_repetitions_expected'))
-
-
+% Plot ERP's if there are data for both conditions
+if isempty(no_trls_left)
+    cfg                = [];
+    cfg.layout         = 'EEG1010.lay';
+    cfg.interactive    = 'yes';
+    cfg.showoutline    = 'yes';
+    cfg.showlabels     = 'yes';
+    ft_multiplotER(cfg, standard, oddball)
+    
+    % Save the figure
+    savefig(gcf, fullfile(output_dir, 'topoplot_standard_oddball'));
+end
 close all
