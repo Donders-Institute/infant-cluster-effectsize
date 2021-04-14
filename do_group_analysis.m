@@ -120,15 +120,21 @@ save(fullfile(output_dir, 'stat_standard_oddball_clusstats.mat'), 'stat_standard
 load(fullfile(output_dir, 'stat_standard_oddball_clusstats.mat'), 'stat_standard_oddball_clusstats');
 
 % Plot displaying t- and p-value distribution across channels and time
+plot_clus = zeros(size(stat_standard_oddball_clusstats.prob));
+plot_clus(stat_standard_oddball_clusstats.negclusterslabelmat ==1) = -1;
+plot_clus(stat_standard_oddball_clusstats.posclusterslabelmat ==1) = 1;
+
 figure
 subplot(2,1,1)
-imagesc(stat_standard_oddball_clusstats.time, 1:size(stat_standard_oddball_clusstats.label,1), stat_standard_oddball_clusstats.prob)
+imagesc(stat_standard_oddball_clusstats.time, 1:size(stat_standard_oddball_clusstats.label,1),plot_clus)
+colormap(jet)
 colorbar
-title(['probability per channel x time']);
+
+title(['Largest positive and negative cluster']);
 subplot(2,1,2)
-imagesc(stat_standard_oddball_clusstats.time, 1:size(stat_standard_oddball_clusstats.label,1), stat_standard_oddball_clusstats.stat)
+imagesc(stat_standard_oddball_clusstats.time, 1:size(stat_standard_oddball_clusstats.label,1),  stat_standard_oddball_clusstats.stat)
 colorbar
-title(['t-values per channel x time']);
+title(['T-values per channel x time']);
 savefig(gcf, fullfile(output_dir, 'T_and_Pvalues_stat_standard_oddball_clusstats'));
 
 % Plot displaying topographic maps across time bins highlighting channel/time as part of clusters
