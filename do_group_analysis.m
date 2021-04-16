@@ -172,7 +172,7 @@ for k = 1:30
     subplot(6,5,k);
     cfg                 = [];
     cfg.xlim            = [j(k) j(k+1)]; % current interval
-    cfg.zlim            = [-10 10]; % set minimum and maximum z-axis
+    cfg.zlim            = [-6 6]; % set minimum and maximum z-axis
     pos_int             = zeros(numel(grandavg_diff_standard_oddball.label),1);
     neg_int             = zeros(numel(grandavg_diff_standard_oddball.label),1);
     pos_int(i1)         = all(pos(i2, m(k):m(k+1)),2); % determine which channels are in a cluster throughout the current time interval (pos cluster)
@@ -186,6 +186,7 @@ for k = 1:30
     cfg.layout          =  'EEG1010.lay';
     cfg.interactive     = 'no';
     ft_topoplotER(cfg, grandavg_diff_standard_oddball)
+    colormap(jet)
 end
 
 % Save the figure
