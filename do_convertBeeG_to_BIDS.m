@@ -1,6 +1,8 @@
-%% Conversion into BIDS - BeeG project
+%% Conversion into BIDS. 
+% Infant EEG example dataset (Kayhan, E., Meyer, M., O’Reilly, J. X., Hunnius, S., & Bekkering, H. (2019). Nine-month-old infants update their predictive models of a changing environment. Developmental cognitive neuroscience, 38, 100680.)
+% Referred to as script section 1
 
-%% Section 1: specification of folders
+%% 1.1 Specification of folders
 
 clear
 
@@ -13,7 +15,7 @@ if exist(bidsroot, 'dir')
   rmdir(bidsroot, 's');
 end
 
-%% Section 2: subject information
+%% 1.2 Subject information
 
 % Read the excel file containing subject info
 subject_file            = [sourcedata filesep 'S_BeeG_participant_info_all'];
@@ -21,7 +23,7 @@ subject_file            = [sourcedata filesep 'S_BeeG_participant_info_all'];
 sub                     = text(2:end, 1);
 sex                     = text(2:end, 3);
 
-%% Section 3: General information for the data2bids function
+%% 3.1 General information for the data2bids function
 
 % Here we start looping over subjects
 for ii = 1:length(sub)
@@ -33,7 +35,7 @@ for ii = 1:length(sub)
   cfg.datatype                                = 'eeg';
   cfg.writejson                               = 'replace';
   
-  %% Section 4: the dataset_description.json
+  %% 1.4 the dataset_description.json
   
   cfg.dataset_description.Name                = 'Nine-month-old infants update their predictive models of a changing environment';
   cfg.dataset_description.DatasetType         = 'raw';
@@ -47,7 +49,7 @@ for ii = 1:length(sub)
   %   cfg.dataset_description.ReferencesAndLinks  = string or cell-array of strings
   %   cfg.dataset_description.DatasetDOI          = string, what to add?
   
-  %% Section 5: the participants tsv
+  %% 1.5 the participants tsv
   
   cfg.sub                               = sub{ii};
   cfg.sub(cfg.sub=='_')                 = []; % remove underscores from the subject identifier
@@ -55,7 +57,7 @@ for ii = 1:length(sub)
   cfg.participants.age                  = age(ii);
   cfg.participants.sex                  = sex{ii};
     
-  %% Section 6: the dataset
+  %% 1.6 the dataset
   
   % Now that we identified the correct subject in the previous section, we
   % can find the correct dataset.
@@ -64,7 +66,7 @@ for ii = 1:length(sub)
       hdr                                   = ft_read_header(cfg.dataset);
   end
   
-   %% Section 7: the EEG json
+   %% 1.7 the EEG json
   
   % Describing the task
   cfg.TaskName                                       = 'audiovisual';
@@ -100,7 +102,7 @@ for ii = 1:length(sub)
   % cfg.eeg.RecordingDuration                        = % Read automatically
   % cfg.eeg.EpochLength                              = % Read automatically
   
-  %% Section 8: the events.tsv.
+  %% 1.8 the events.tsv.
   
   % To do this, first create events using ft_define_trial
   cfg_trials                      = cfg;
@@ -108,7 +110,7 @@ for ii = 1:length(sub)
   trl                             = trialfun_BeeG(cfg_trials);
   cfg.events                      = trl;
   
-  %% Section 9: the channels.tsv
+  %% 1.9 the channels.tsv
   
   % Double info with eeg.tsv --> here only fill it out if it is channel specific
   
@@ -130,7 +132,7 @@ for ii = 1:length(sub)
   
   data2bids(cfg);
   
-  %% Add the events json
+  %% 1.10 Add the events json
 
     events_json                                 = [];
     events_json.onset.description               = 'Onset of the event';
@@ -163,7 +165,7 @@ for ii = 1:length(sub)
 
 end % Of subject loop
  
-%% Add the participants json
+%% 1.11 Add the participants json
 
 participants_json.participant_id.description    = 'Subject identifier';
 participants_json.age.description               = 'age of each subject';

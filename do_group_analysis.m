@@ -1,4 +1,5 @@
-%% %% Analysis script to perform group analysis of the example infant EEG dataset
+%% Analysis script to perform group analysis of the example infant EEG dataset
+% Referred to as script section 3
 
 do_setpath
 
@@ -16,7 +17,7 @@ if ~exist(output_dir, 'dir')
     mkdir(output_dir);
 end
 
-%% First, find and exclude subjects for who too many trials had to be rejected
+%% 3.1 First, find and exclude subjects for who too many trials had to be rejected
 
 % Define a trial rejection threshold
 threshold = input('Indicate the threshold for percentage of rejected trials [a number between 0 and 100]');
@@ -55,7 +56,7 @@ subjectlist_new(excluded_participants) = [];
 save(fullfile(output_dir, 'excludedparticipants.mat'), 'excluded_participants');
 save(fullfile(output_dir, 'subjectlist_new.mat'), 'subjectlist_new');
 
-%% Calculate grand average ERP
+%% 3.2 Calculate grand average ERP
 % Do so by averaging time-locked data across participants
 load(fullfile(output_dir, 'subjectlist_new.mat'), 'subjectlist_new');
 
@@ -90,8 +91,9 @@ save(fullfile(output_dir, 'grandaverage_standard.mat'), 'grandavg_standard');
 save(fullfile(output_dir, 'grandaverage_oddball.mat'), 'grandavg_oddball');
 savefig(gcf, fullfile(output_dir, 'topoplot_grandaverage_standard_oddball'));
 
-%% Perform cluster-based permutation statistics correcting for multiple comparisons
+%% 3.3 Perform cluster-based permutation statistics correcting for multiple comparisons
 
+% 3.3.1 Perform cluster-based test
 load(fullfile(scripts, 'selected_neighbours.mat'));
 
 cfg                       = [];
@@ -116,7 +118,7 @@ stat_standard_oddball_clusstats  = ft_timelockstatistics(cfg, standard_all{:}, o
 % Save the data
 save(fullfile(output_dir, 'stat_standard_oddball_clusstats.mat'), 'stat_standard_oddball_clusstats');
 
-%% Plot the results of the cluster-based permutation test
+%% 3.3.2 Plot the results of the cluster-based permutation test
 load(fullfile(output_dir, 'stat_standard_oddball_clusstats.mat'), 'stat_standard_oddball_clusstats');
 
 % Plot displaying t- and p-value distribution across channels and time
@@ -192,10 +194,10 @@ end
 % Save the figure
 savefig(gcf, fullfile(output_dir, 'topoplot_stat_standard_oddball_clusstats'));
 
-%% Determine effect size
+%% 3.4 Determine effect size
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Option 1: Calculate Cohen's d for the average difference in the respective cluster
+% 3.4.1 Option 1: Calculate Cohen's d for the average difference in the respective cluster
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % First for the positive cluster
@@ -245,7 +247,7 @@ Neg.mean_ERP_diff       = mean(Neg.ERP_Diff);
 Neg.cohensd_ERP_diff    = Neg.mean_ERP_diff/Neg.stdev_ERP_diff;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Option 2: Determine at maximum effect size and at which channel/time it
+% 3.4.2 Option 2: Determine at maximum effect size and at which channel/time it
 % is maximal (upper bound)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -267,7 +269,7 @@ end
 [Neg.row,Neg.col]                       = find(stat_standard_oddball_clusstats.negclusterslabelmat==1);
  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Option 3: % Calculate effect size on rectangle around cluster results (lower bound)
+% 3.4.3 Option 3: % Calculate effect size on rectangle around cluster results (lower bound)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Calculate grand average, keeping information about individual
 % participants
@@ -357,7 +359,7 @@ fprintf('\n')
 % Save the data
 save(fullfile(output_dir, 'EffectSize.mat'), 'Neg', 'Pos');
 
-%% Plot ERP timecourse of the channels with the maximal effect size
+%% 3.4.4 Plot ERP timecourse of the channels with the maximal effect size
 
 % Determine variability between participants
 se_grandavg_standard = squeeze(nanstd(grandavg_standard_all.individual/sqrt(length(subjectlist_new))));
@@ -423,7 +425,7 @@ ylim([-15 15])
 line([-.5 1],[ 0 0], 'Color', [0 0 0],'LineStyle', ':')
 title(['Maximum effect of negative cluster at channel ' grandavg_standard.label(Neg.row(Neg.idx))])
 
-%% Plot effect size topography highlighting cluster-based permutation test results
+%% 3.4.5 Plot effect size topography highlighting cluster-based permutation test results
 
 % Determine effect size for each channel x time pair
 cfg                 = [];

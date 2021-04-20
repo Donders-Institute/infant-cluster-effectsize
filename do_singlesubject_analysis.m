@@ -1,4 +1,5 @@
 %% Analysis script to analyze a single subject
+% Referred to as script section 2
 
 % Set paths
 do_setpath
@@ -36,14 +37,14 @@ else
 end
 
 
-%% Find the data and headerfiles
+%% 2.1 Load data and and define trials
 
+% 2.1.1 Load data: Find the data and headerfiles
 cfg         = [];
 cfg.dataset = [bidsroot filesep sub filesep 'eeg' filesep sub '_task-audiovisual_eeg.vhdr' ];
 hdr         = ft_read_header(cfg.dataset);
 
-%% Now extract the trials from the events.tsv
-
+% 2.1.2 Now extract the trials from the events.tsv
 t              = readtable([bidsroot filesep sub filesep 'eeg' filesep sub '_task-audiovisual_events.tsv'], 'FileType', 'text');
 trl            = t( : , 3:8);
 
@@ -86,7 +87,7 @@ cfg.trl             = trl_new;
 % Save the new trials
 save(fullfile(output_dir, 'trials.mat'), 'trl_new');
 
-%% Pre-processing on the epochs that are defined as trials
+%% 2.2 Filtering and baseline correction based on the epochs that are defined as trials
 
 % We perform pre-processing similarly to the published work on this study:
 % Kayhan et al. Developmental Cognitive Neuroscience, 2019
@@ -103,7 +104,7 @@ cfg.padding             = 5;
 cfg.demean              = 'yes';
 data                    = ft_preprocessing(cfg);
 
-%% Artefact rejection
+%% 2.3 Artefact rejection
 
 % We start the artefact rejection, consisting of three phases:
 % 1) A first pass visual rejection of large artifacts
@@ -251,7 +252,7 @@ data                    = ft_preprocessing(cfg);
 
 if do_artefact_rejection==1 % if the artefact rejection has not been conducted yet
     
-    %% Artefact rejection part 1: A first pass visual rejection using ft_rejectvisual
+    %% 2.3.1 Artefact rejection part 1: A first pass visual rejection using ft_rejectvisual
     
     % Start with trial (or summary) view to get an overview of the data, and to reject channels or trials that show large artefacts
     
@@ -264,7 +265,7 @@ if do_artefact_rejection==1 % if the artefact rejection has not been conducted y
     % Then find the rejected trials
     badtrial_times      = data_artefact_1.cfg.artfctdef.trial.artifact; % this matrix contains start and end times of each rejected trial
     
-    %% Artefact rejection part 2: ICA
+    %% 2.3.2 Artefact rejection part 2: ICA
     
     % Before doing ICA remove bad channels
     badchannels             = find(all(isnan(data_artefact_1.trial{1}), 2));
@@ -337,7 +338,7 @@ if do_artefact_rejection==1 % if the artefact rejection has not been conducted y
     end
  
         
-    %% Artefact rejection part 3: A second pass of visual artefact rejection
+    %% 2.3.3 Artefact rejection part 3: A second pass of visual artefact rejection
     
     % Go through each trial to check if any artefacts remain and remove them
     
@@ -386,7 +387,7 @@ if do_artefact_rejection==1 % if the artefact rejection has not been conducted y
     
 end % end of artefact rejection
 
-%% Re-referencing
+%% 2.4 Re-referencing
 
 if exist([output_dir filesep 'data_cleaned.mat'], 'file')
     load([output_dir filesep 'data_cleaned.mat']);
@@ -401,7 +402,7 @@ cfg.implicitref         = 'TP9';            % the implicit reference channel is 
 cfg.refchannel          = {'TP9', 'TP10'}; % the average of these channels is used for re-reference
 data_cleaned            = ft_preprocessing(cfg, data_cleaned);
 
-%% Calculate ERPs for standard (bee) and oddball (cue) stimuli
+%% 2.5 Calculate ERPs for standard (bee) and oddball (cue) stimuli
 no_trls_left = [];
 
 % Perform timelockanalysis on standard (bee) stimuli
