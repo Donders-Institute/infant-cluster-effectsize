@@ -52,7 +52,7 @@ for ii = 1:length(sub)
   %   cfg.dataset_description.ReferencesAndLinks  = string or cell-array of strings
   %   cfg.dataset_description.DatasetDOI          = string
   
-  %% 1.5 the participants tsv
+  %% 1.5 Create a file with project level participant information: participants.tsv
   
   cfg.sub                               = sub{ii};
   cfg.sub(cfg.sub=='_')                 = []; % remove underscores from the subject identifier
@@ -60,21 +60,19 @@ for ii = 1:length(sub)
   cfg.participants.age                  = age(ii);
   cfg.participants.sex                  = sex{ii};
     
-  %% 1.6 the dataset
+  %% 1.6 Select the indiviudal EEG dataset per participant
   
-  % Now that we identified the correct subject in the previous section, we
-  % can find the correct dataset.
   cfg.dataset                           = ['Raw_data_infant' filesep  sub{ii} '.vhdr'];
   if cfg.dataset
       hdr                                   = ft_read_header(cfg.dataset);
   end
   
-   %% 1.7 the EEG json
-  
+   %% 1.7 Create metadata information on the EEG recordings
+   
   % Describing the task
   cfg.TaskName                                       = 'audiovisual';
-  cfg.TaskDescription                                = 'infants observed a sequence of expected stimuli, followed by an update or no- update cue and then another sequence of unexpected or expected stimuli,respectively';
-  cfg.Instructions                                   = 'Parents were instructed to keep the interaction with their child minimal during the measurement, infants received no instructions';
+  cfg.TaskDescription                                = 'Infants observed a sequence of repeated audio-visual stimuli, followed by a cue signalling subsequent updating or no-updating of the sequence. Respectively, the sequence continued with the same (no-update)or new (updated) stimuli.';
+  cfg.Instructions                                   = 'Parents were instructed to keep the interaction with their infant minimal during the measurement, infants received no instructions';
     
   % Describing the recording setup
   cfg.InstitutionName                                = 'The Donders Institute for Brain, Cognition and Behaviour';
@@ -98,25 +96,24 @@ for ii = 1:length(sub)
   cfg.eeg.HardwareFilters.HighCutoff.Frequency       = 1000;
   cfg.eeg.SoftwareFilters.LowCutoff.Frequency        = 0.1;
   cfg.eeg.SoftwareFilters.HighCutoff.Frequency       = 200;
-  cfg.eeg.EEGChannelCount                            = 32; % Number of EEG channels
+  cfg.eeg.EEGChannelCount                            = 32; 
   
   % Describing the recording
   cfg.eeg.RecordingType                              = 'continuous';
   % cfg.eeg.RecordingDuration                        = % Read automatically
   % cfg.eeg.EpochLength                              = % Read automatically
   
-  %% 1.8 the events.tsv.
+  %% 1.8 Create metadata on markers/triggers used in the EEG recordings: events.tsv
   
-  % To do this, first create events using ft_define_trial
+  % To do this, create segment data into events using ft_define_trial
   cfg_trials                      = cfg;
   cfg_trials.trialdef.eventtype   = 'Stimulus';
   trl                             = trialfun_BeeG(cfg_trials);
   cfg.events                      = trl;
   
-  %% 1.9 the channels.tsv
+  %% 1.9 Create metadata on the channels used in the EEG recordings: channels.tsv
   
-  % Double info with eeg.tsv --> here only fill it out if it is channel specific
-  
+  % Double info with eeg.tsv --> here only fill it out if it is channel specific 
   cfg.channels.name               = hdr.label;
   cfg.channels.type               = repmat({'EEG'}, 32, 1);  % Type of channel
   cfg.channels.units              = repmat({'uV'}, 32, 1);% Physical unit of the data values recorded by this channel in SI
@@ -125,6 +122,7 @@ for ii = 1:length(sub)
   cfg.channels.high_cutoff        = repmat(1000, 32, 1); % Frequencies used for the hardware low-pass filter applied to the channel in Hz.
   cfg.channels.notch              = repmat(nan, 32, 1); % Frequencies used for the notch filter applied to the channel, in Hz. If no notch filter applied, use n/a.
   
+  % Other options could be the following  
   % cfg.channels.software_filters   = {' "Low Cutoff": 0.1', ' "High Cutoff": 125'}; % List of temporal and/or spatial software filters applied.
   % cfg.channels.description        = % OPTIONAL. Brief free-text description of the channel, or other information of interest. See examples below.
   % cfg.channels.status             = % OPTIONAL. Data quality observed on the channel (good/bad). A channel is considered bad if its data quality is compromised by excessive noise. Description of noise type SHOULD be provided in [status_description].
@@ -135,16 +133,16 @@ for ii = 1:length(sub)
   
   data2bids(cfg);
   
-  %% 1.10 Add the events json
+  %% 1.10 Create a description of the markers/triggers used in the EEG recordings: events.json
 
     events_json                                 = [];
     events_json.onset.description               = 'Onset of the event';
     events_json.onset.units                     = 'seconds';
     events_json.duration.description            = 'Duration of the event';
     events_json.duration.units                  = 'seconds';
-    events_json.begsample.description           = 'Sample where event begins (measured from start of recording)';
+    events_json.begsample.description           = 'Sample at which event begins (measured from start of recording)';
     events_json.begsample.units                 = 'sample number';
-    events_json.endsample.description           = 'Sample where event ends (measured from start of recording)';
+    events_json.endsample.description           = 'Sample at whcih event ends (measured from start of recording)';
     events_json.endsample.units                 = 'sample number';
     events_json.offset.description              = 'Offset from begsample till start of the trial';
     events_json.offset.units                    = 'sample number';
@@ -152,12 +150,12 @@ for ii = 1:length(sub)
     events_json.stimulus.description            = 'Type of stimulus presented to the infant';
     events_json.stimulus.levels                 = {'blank screen: presentation of blank screen before fixation cross',...
                                                   'fixation cross: presentation of a fixation cross (see subfoler stimuli\fixation)and a sound(see subfoler stimuli\Ding_Sound_Effect)',...
-                                                  'bee: presentation of a bee in the same location and of the same colour as the previous bee (see subfoler stimuli\bee) along with a jumping sound (see subfolder stimuli\sound1-9)',...
-                                                  'post update-cue bee: presentation of a bee after an update cue, in a different location and of a different colour as the previous bee (see subfoler stimuli\bee) along with a jumping sound (see subfolder stimuli\sound 1-9)',...
-                                                  'post no-update-cue bee: presentation of a bee after a no-update cue, in the same location and of the same colour as the previous bee (see subfoler stimuli\bee) along with a jumping sound (see subfolder stimuli\sound 1-9)',...
-                                                  'update-cue: presentation of the update-cue (see subfolder stimuli\circle) and a sound (see subfolder stimuli\sound10)',...
-                                                  'no-update-cue: presentation of the no-update-cue (see subfolder stimuli\triangle)and a sound (see subfolder stimuli\sound11)',};
-    events_json.location_bee.description         = 'Location of the bee';
+                                                  'bee: presentation of a bee image in the same location and of the same colour as the previous bee (see subfoler stimuli\bee) along with a jumping sound (see subfolder stimuli\sound1-9)',...
+                                                  'post update-cue bee: presentation of a bee image after an update cue, in a different location and of a different colour as the previous bee (see subfoler stimuli\bee) along with a jumping sound (see subfolder stimuli\sound 1-9)',...
+                                                  'post no-update-cue bee: presentation of a bee image after a no-update cue, in the same location and of the same colour as the previous bee (see subfoler stimuli\bee) along with a jumping sound (see subfolder stimuli\sound 1-9)',...
+                                                  'update-cue: presentation of the update-cue (see subfolder stimuli\circle or triangle) and a sound (see subfolder stimuli\sound10 or sound11)',...
+                                                  'no-update-cue: presentation of the no-update-cue (see subfolder stimuli\circle or triangle) and a sound (see subfolder stimuli\sound10 or sound11)',};
+    events_json.location_bee.description         = 'Location of the bee image';
     events_json.location_bee.units               = 'degrees';
     
     foldername                                  = [bidsroot filesep 'sub-' cfg.sub filesep 'eeg'];
@@ -166,9 +164,9 @@ for ii = 1:length(sub)
     write_json(filename, events_json);
 
 
-end % Of subject loop
+end % End subject loop
  
-%% 1.11 Add the participants json
+%% 1.11 Create description of metadata on participants: participants.json
 
 participants_json.participant_id.description    = 'Subject identifier';
 participants_json.age.description               = 'age of each subject';
