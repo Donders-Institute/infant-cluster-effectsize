@@ -1,5 +1,5 @@
 %% Conversion into BIDS. 
-% Infant EEG example dataset (Kayhan, E., Meyer, M., O�Reilly, J. X., Hunnius, S., & Bekkering, H. (2019). Nine-month-old infants update their predictive models of a changing environment. Developmental cognitive neuroscience, 38, 100680.)
+% Infant EEG example dataset (Kayhan, E., Meyer, M., O'Reilly, J. X., Hunnius, S., & Bekkering, H. (2019). Nine-month-old infants update their predictive models of a changing environment. Developmental cognitive neuroscience, 38, 100680.)
 % Referred to as script section 1
 
 %% 1.1 Specification of folders
@@ -225,40 +225,6 @@ destination = fullfile(bidsroot, 'README');
 fileID = fopen(destination,'w');
 fprintf(fileID,'\n\n\n');
 fclose(fileID);
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% SUBFUNCTION
-
-function s = remove_empty(s)
-if isempty(s)
-  return
-elseif isstruct(s)
-  fn = fieldnames(s);
-  fn = fn(structfun(@isempty, s));
-  s = removefields(s, fn);
-elseif istable(s)
-  remove = false(1,size(s,2));
-  for i=1:size(s,2)
-    % find columns that are non-numeric and where all elements are []
-    remove(i) = ~isnumeric(s{:,i}) && all(cellfun(@isempty, s{:,i}));
-  end
-  s = s(:,~remove);
-end
-
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% SUBFUNCTION
-
-function y = sort_fields(x)
-fn = fieldnames(x);
-fn = sort(fn);
-y = struct();
-for i=1:numel(fn)
-  y.(fn{i}) = x.(fn{i});
-end
-
-end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% SUBFUNCTION
