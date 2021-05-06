@@ -1,5 +1,16 @@
-%% Analysis script to perform group analysis of the example infant EEG dataset
-% Referred to as script section 3
+%% Analysis script to perform the group analysis
+%
+% These scripts and the data in BIDS format are part of Meyer, M., Lamers, D., Kayhan,
+% E., Hunnius, S., & Oostenveld, R. (2021) Fostering reproducibility in developmental
+% EEG research by using BIDS, cluster-based permutation tests and reporting
+% effectsizes (in preparation)
+%
+% The infant EEG dataset is originally described in Kayhan, E., Meyer, M., O'Reilly,
+% J. X., Hunnius, S., & Bekkering, H. (2019). Nine-month-old infants update their
+% predictive models of a changing environment. Developmental cognitive neuroscience,
+% 38, 100680.)
+%
+% The code in this script is referred to as script section 3
 
 do_setpath
 
@@ -14,37 +25,37 @@ fprintf('\n')
 output_dir = fullfile(results, 'group');
 
 if ~exist(output_dir, 'dir')
-    mkdir(output_dir);
+  mkdir(output_dir);
 end
 
 %% 3.1 First, find and exclude subjects for who too many trials had to be rejected
 
 % Define a trial rejection threshold
-threshold = input('Indicate the threshold for percentage of rejected trials [a number between 0 and 100]');
+threshold = input('Indicate the threshold for percentage of rejected trials as a number between 0 and 100: ');
 
 excluded_participants = [];
 
 for ii = 1:size(subjectlist,1)
-    sub            = subjectlist{ii};
-    input_dir     = fullfile(results, sub);
-    
-    % Find information on how many trials were rejected & calculate percent
-    % of rejected trials
-    if exist([input_dir filesep 'badtrials.mat'], 'file') && exist([input_dir filesep 'trials.mat'], 'file')
-        load([input_dir filesep 'badtrials.mat']);
-        load([input_dir filesep 'trials.mat']);
-        rejected_trials = size(badtrials.begsample, 1);
-        total_trials    = size(trl_new.begsample, 1);
-        percentage_rejected_trials = (rejected_trials/total_trials)*100;
-        % Exclude participants if more than the defined threshold of trials
-        % were rejected during artifact rejection
-        if percentage_rejected_trials > threshold
-            excluded_participants = [excluded_participants, ii];
-        end
-    else
-        % Give warning if artefact rejection has not been performed yet
-        warning('Continuing to group analysis but artefact rejection results cannot be found');
+  sub       = subjectlist{ii};
+  input_dir = fullfile(results, sub);
+  
+  % Find information on how many trials were rejected & calculate percent
+  % of rejected trials
+  if exist([input_dir filesep 'badtrials.mat'], 'file') && exist([input_dir filesep 'trials.mat'], 'file')
+    load([input_dir filesep 'badtrials.mat']);
+    load([input_dir filesep 'trials.mat']);
+    rejected_trials = size(badtrials.begsample, 1);
+    total_trials    = size(trl_new.begsample, 1);
+    percentage_rejected_trials = (rejected_trials/total_trials)*100;
+    % Exclude participants if more than the defined threshold of trials
+    % were rejected during artifact rejection
+    if percentage_rejected_trials > threshold
+      excluded_participants = [excluded_participants, ii];
     end
+  else
+    % Give warning if artefact rejection has not been performed yet
+    warning('Continuing to group analysis, but artefact rejection results cannot be found');
+  end
 end
 
 % create updated subject list including only those participants with
@@ -57,20 +68,19 @@ save(fullfile(output_dir, 'excludedparticipants.mat'), 'excluded_participants');
 save(fullfile(output_dir, 'subjectlist_new.mat'), 'subjectlist_new');
 
 %% 3.2 Calculate grand average ERP
+
 % Do so by averaging time-locked data across participants
 load(fullfile(output_dir, 'subjectlist_new.mat'), 'subjectlist_new');
 
 for ii = 1:length(subjectlist_new)
-    folder                  = [results filesep subjectlist_new{ii}];
-    load([folder filesep 'timelock_standard.mat']);
-    standard_all(ii)        = { standard };
-    load([folder filesep 'timelock_oddball.mat']);
-    oddball_all(ii)      = { oddball };
+  folder                  = [results filesep subjectlist_new{ii}];
+  load([folder filesep 'timelock_standard.mat']);
+  standard_all(ii)        = { standard };
+  load([folder filesep 'timelock_oddball.mat']);
+  oddball_all(ii)      = { oddball };
 end
 
-% Calculate grand average for both conditions (standard, oddball)
-% separately
-
+% Calculate grand average for both conditions (standard, oddball) separately
 cfg                      = [];
 cfg.channel              = 'all';
 cfg.latency              = 'all';
@@ -105,7 +115,7 @@ cfg.statistic             = 'ft_statfun_depsamplesT';
 cfg.alpha                 = 0.05;
 cfg.correctm              = 'cluster';
 cfg.correcttail           = 'prob';
-cfg.numrandomization      = 1024; 
+cfg.numrandomization      = 1024;
 
 Nsub                      = length(subjectlist_new);
 cfg.design(1,1:2*Nsub)    = [ones(1,Nsub) 2*ones(1,Nsub)];
@@ -119,6 +129,7 @@ stat_standard_oddball_clusstats  = ft_timelockstatistics(cfg, standard_all{:}, o
 save(fullfile(output_dir, 'stat_standard_oddball_clusstats.mat'), 'stat_standard_oddball_clusstats');
 
 %% 3.3.2 Plot the results of the cluster-based permutation test
+
 load(fullfile(output_dir, 'stat_standard_oddball_clusstats.mat'), 'stat_standard_oddball_clusstats');
 
 % Plot displaying t- and p-value distribution across channels and time
@@ -132,11 +143,11 @@ imagesc(stat_standard_oddball_clusstats.time, 1:size(stat_standard_oddball_cluss
 colormap(jet)
 colorbar
 
-title(['Largest positive and negative cluster']);
+title('Largest positive and negative cluster');
 subplot(2,1,2)
 imagesc(stat_standard_oddball_clusstats.time, 1:size(stat_standard_oddball_clusstats.label,1),  stat_standard_oddball_clusstats.stat)
 colorbar
-title(['T-values per channel x time']);
+title('T-values per channel x time');
 savefig(gcf, fullfile(output_dir, 'T_and_Pvalues_stat_standard_oddball_clusstats'));
 
 % Plot displaying topographic maps across time bins highlighting channel/time as part of clusters
@@ -162,7 +173,7 @@ neg                     = ismember(stat_standard_oddball_clusstats.negclustersla
 
 % Set plotting specifications
 timestep                = 0.05; % plot every 0.05 sec intervals
-sampling_rate           = 500; % set sampling frequency 
+sampling_rate           = 500; % set sampling frequency
 sample_count            = length(stat_standard_oddball_clusstats.time);
 j                       = [stat_standard_oddball_clusstats.time(1):timestep:stat_standard_oddball_clusstats.time(end)]; % start of each interval for plotting in seconds
 m                       = [1:timestep*sampling_rate:sample_count]; % start of each interval for plotting in sample points
@@ -171,24 +182,24 @@ m                       = [1:timestep*sampling_rate:sample_count]; % start of ea
 
 figure
 for k = 1:30
-    subplot(6,5,k);
-    cfg                 = [];
-    cfg.xlim            = [j(k) j(k+1)]; % current interval
-    cfg.zlim            = [-6 6]; % set minimum and maximum z-axis
-    pos_int             = zeros(numel(grandavg_diff_standard_oddball.label),1);
-    neg_int             = zeros(numel(grandavg_diff_standard_oddball.label),1);
-    pos_int(i1)         = all(pos(i2, m(k):m(k+1)),2); % determine which channels are in a cluster throughout the current time interval (pos cluster)
-    neg_int(i1)         = all(neg(i2, m(k):m(k+1)),2); % determine which channels are in a cluster throughout the current time interval (neg cluster)
-    
-    cfg.highlight       = 'on';
-    cfg.highlightchannel= find(pos_int | neg_int); % highlight channels belonging to a cluster
-    cfg.highlightcolor  = [1 1 1]; % highlight marker color (default = [0 0 0] (black))
-    cfg.comment         = 'xlim';
-    cfg.commentpos      = 'title';
-    cfg.layout          =  'EEG1010.lay';
-    cfg.interactive     = 'no';
-    ft_topoplotER(cfg, grandavg_diff_standard_oddball)
-    colormap(jet)
+  subplot(6,5,k);
+  cfg                 = [];
+  cfg.xlim            = [j(k) j(k+1)]; % current interval
+  cfg.zlim            = [-6 6]; % set minimum and maximum z-axis
+  pos_int             = zeros(numel(grandavg_diff_standard_oddball.label),1);
+  neg_int             = zeros(numel(grandavg_diff_standard_oddball.label),1);
+  pos_int(i1)         = all(pos(i2, m(k):m(k+1)),2); % determine which channels are in a cluster throughout the current time interval (pos cluster)
+  neg_int(i1)         = all(neg(i2, m(k):m(k+1)),2); % determine which channels are in a cluster throughout the current time interval (neg cluster)
+  
+  cfg.highlight       = 'on';
+  cfg.highlightchannel= find(pos_int | neg_int); % highlight channels belonging to a cluster
+  cfg.highlightcolor  = [1 1 1]; % highlight marker color (default = [0 0 0] (black))
+  cfg.comment         = 'xlim';
+  cfg.commentpos      = 'title';
+  cfg.layout          =  'EEG1010.lay';
+  cfg.interactive     = 'no';
+  ft_topoplotER(cfg, grandavg_diff_standard_oddball)
+  colormap(jet)
 end
 
 % Save the figure
@@ -205,17 +216,17 @@ effect_window_pos = stat_standard_oddball_clusstats.posclusterslabelmat==1;
 
 % Calculate pairwise difference between conditions for each participant
 for ii = 1:size(subjectlist_new,1)
-    folder                  = [results filesep subjectlist_new{ii}];
-    load([folder filesep 'timelock_standard.mat']);
-    load([folder filesep 'timelock_oddball.mat']);
-    
-    a = standard.avg(effect_window_pos);
-    b = oddball.avg(effect_window_pos);
-    c = a-b;
-    Pos.ERP_Diff_alltimechan(ii,:) =c;
-    Pos.ERP_Diff(ii) = nanmean([a - b]);
-    clear expected unexpected a b c
-
+  folder                  = [results filesep subjectlist_new{ii}];
+  load([folder filesep 'timelock_standard.mat']);
+  load([folder filesep 'timelock_oddball.mat']);
+  
+  a = standard.avg(effect_window_pos);
+  b = oddball.avg(effect_window_pos);
+  c = a-b;
+  Pos.ERP_Diff_alltimechan(ii,:) =c;
+  Pos.ERP_Diff(ii) = nanmean([a - b]);
+  clear expected unexpected a b c
+  
 end
 
 % Calculate Cohen's d
@@ -228,17 +239,17 @@ effect_window_neg = stat_standard_oddball_clusstats.negclusterslabelmat==1;
 
 % Calculate pairwise difference between conditions for each participant
 for ii = 1:size(subjectlist_new,1)
-    folder                  = [results filesep subjectlist_new{ii}];
-    load([folder filesep 'timelock_standard.mat']);
-    load([folder filesep 'timelock_oddball.mat']);
-    
-    a = standard.avg(effect_window_neg);
-    b = oddball.avg(effect_window_neg);
-    c = a-b;
-    Neg.ERP_Diff_alltimechan(ii,:) =c;
-    Neg.ERP_Diff(ii) = nanmean([a - b]);
-    clear expected unexpected a b c
-
+  folder                  = [results filesep subjectlist_new{ii}];
+  load([folder filesep 'timelock_standard.mat']);
+  load([folder filesep 'timelock_oddball.mat']);
+  
+  a = standard.avg(effect_window_neg);
+  b = oddball.avg(effect_window_neg);
+  c = a-b;
+  Neg.ERP_Diff_alltimechan(ii,:) =c;
+  Neg.ERP_Diff(ii) = nanmean([a - b]);
+  clear expected unexpected a b c
+  
 end
 
 % Calculate Cohen's d
@@ -252,22 +263,22 @@ Neg.cohensd_ERP_diff    = Neg.mean_ERP_diff/Neg.stdev_ERP_diff;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Determine maximum effect size and at which channel and time point Cohen's d is maximal
-for t = 1:size(Pos.ERP_Diff_alltimechan,2)   
-    Pos.cohensd_ERP_Diff_alltimechan(t) =(nanmean(Pos.ERP_Diff_alltimechan(:,t)))/(std(Pos.ERP_Diff_alltimechan(:,t)));
+for t = 1:size(Pos.ERP_Diff_alltimechan,2)
+  Pos.cohensd_ERP_Diff_alltimechan(t) =(nanmean(Pos.ERP_Diff_alltimechan(:,t)))/(std(Pos.ERP_Diff_alltimechan(:,t)));
 end
 
 [Pos.cohensd_ERP_Diff_Max, Pos.idx]     = max(Pos.cohensd_ERP_Diff_alltimechan);
 [Pos.row,Pos.col]                       = find(stat_standard_oddball_clusstats.posclusterslabelmat==1);
- 
+
 % Determine maximum effect size and at which channel and time point Cohen's d is maximal
 
-for t = 1:size(Neg.ERP_Diff_alltimechan,2)   
-    Neg.cohensd_ERP_Diff_alltimechan(t) =(nanmean(Neg.ERP_Diff_alltimechan(:,t)))/(std(Neg.ERP_Diff_alltimechan(:,t)));
+for t = 1:size(Neg.ERP_Diff_alltimechan,2)
+  Neg.cohensd_ERP_Diff_alltimechan(t) =(nanmean(Neg.ERP_Diff_alltimechan(:,t)))/(std(Neg.ERP_Diff_alltimechan(:,t)));
 end
 
 [Neg.cohensd_ERP_Diff_Max, Neg.idx]     = min(Neg.cohensd_ERP_Diff_alltimechan);
 [Neg.row,Neg.col]                       = find(stat_standard_oddball_clusstats.negclusterslabelmat==1);
- 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 3.4.3 Option 3: % Calculate effect size on rectangle around cluster results (lower bound)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -283,7 +294,7 @@ grandavg_oddball_all     = ft_timelockgrandaverage(cfg, oddball_all{:});
 
 % First for the largest positive cluster
 
-% Determine time and channels of the largest positive cluster 
+% Determine time and channels of the largest positive cluster
 [Pos.row,Pos.col] = find(stat_standard_oddball_clusstats.posclusterslabelmat==1); % row = channel; col = time
 idx_time_min = min(Pos.col);
 idx_time_max = max(Pos.col);
@@ -310,7 +321,7 @@ cfg.design(2,1:2*Nsub)  = [1:Nsub 1:Nsub];
 effect_rectangle_pos = ft_timelockstatistics(cfg, grandavg_standard_all, grandavg_oddball_all);
 Pos.effect_rectangle = effect_rectangle_pos;
 
-% Determine time and channels of the largest negative cluster 
+% Determine time and channels of the largest negative cluster
 [Neg.row,Neg.col] = find(stat_standard_oddball_clusstats.negclusterslabelmat==1);
 idx_time_min = min(Neg.col);
 idx_time_max = max(Neg.col);
@@ -369,7 +380,7 @@ se_grandavg_oddball = squeeze(nanstd(grandavg_oddball_all.individual/sqrt(length
 colour_code = {'b','r', 'k'};
 shaded_area = {[0, 0, 1], [1 0 0], [0, 0, 0]};
 
-% ERP of channel with maximum effect size of positive Cluster
+% Plot the ERP of the channel with maximum effect size of positive Cluster
 figure;
 
 % Condition 1
@@ -398,7 +409,8 @@ ylim([-15 15])
 line([-.5 1],[ 0 0], 'Color', [0 0 0],'LineStyle', ':')
 title(['Maximum effect of positive cluster at channel ' grandavg_standard.label(Pos.row(Pos.idx))])
 
-% ERP of channel with maximum effect size of negative Cluster
+% Plot the ERP of the channel with maximum effect size of negative Cluster
+
 % Condition 1
 subplot(1,2,2)
 plot(grandavg_standard.time,grandavg_standard.avg(Neg.row(Neg.idx),:),colour_code{1}, 'LineWidth', 1.5)
@@ -428,26 +440,28 @@ title(['Maximum effect of negative cluster at channel ' grandavg_standard.label(
 %% 3.4.5 Plot effect size topography highlighting cluster-based permutation test results
 
 % Determine effect size for each channel x time pair
-cfg                 = [];
-cfg.parameter       = 'individual';
-cfg.method          = 'analytic';
-cfg.statistic       = 'cohensd';
-cfg.ivar            = 1;
-cfg.uvar            = 2;
-num_sub             = length(standard_all);
-cfg.design          = [ones(1,num_sub) ones(1,num_sub)*2 
-    1:num_sub 1:num_sub];
+cfg           = [];
+cfg.parameter = 'individual';
+cfg.method    = 'analytic';
+cfg.statistic = 'cohensd';
+cfg.ivar      = 1;
+cfg.uvar      = 2;
+num_sub       = length(standard_all);
+cfg.design    = [
+  1*ones(1,num_sub) 2*ones(1,num_sub)
+  1:num_sub         1:num_sub
+  ];
 
 effect_all_with_mask = ft_timelockstatistics(cfg, grandavg_standard_all, grandavg_oddball_all);
 
 % Create mask to indicate clusters
 effect_all_with_mask.mask = stat_standard_oddball_clusstats.mask;
 
-cfg                 = [];
-cfg.layout          = 'EEG1010.lay';
-cfg.parameter       = 'cohensd';
-cfg.maskparameter   = 'mask';
-cfg.linecolor       = [0 0 0];
+cfg               = [];
+cfg.layout        = 'EEG1010.lay';
+cfg.parameter     = 'cohensd';
+cfg.maskparameter = 'mask';
+cfg.linecolor     = [0 0 0];
 ft_multiplotER(cfg,effect_all_with_mask)
 
 close all
