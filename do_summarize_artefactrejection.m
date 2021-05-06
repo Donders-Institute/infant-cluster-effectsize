@@ -40,7 +40,7 @@ for ii=1:size(subjectlist,1)
         load([output_dir filesep 'badtrials.mat']);
         % The we read the participants tsv, to which we should add
         % the rejected trial info
-        participants = read_tsv([bidsroot filesep 'participants.tsv']);
+        participants = ft_read_tsv([bidsroot filesep 'participants.tsv']);
         
         % We write the included column
         included = repmat({'Yes'}, length(subjectlist), 1);
@@ -51,23 +51,23 @@ for ii=1:size(subjectlist,1)
         participants.excluded_trials      = excluded_trials;
         
         % Then we update the current tsv file
-        write_tsv([derivatives filesep 'participants.tsv'], participants);
+        ft_write_tsv([derivatives filesep 'participants.tsv'], participants);
         
         % We also have to update the corresponding json file
-        participants_json      = read_json([bidsroot filesep 'participants.json']);
+        participants_json      = ft_read_json([bidsroot filesep 'participants.json']);
         if ~isfield(participants_json, 'included')
             % the field does not yet exist, we create it
             participants_json.included.description = 'Whether participant has been included in the final analysis based on percentage of rejected trials';
             participants_json.included.levels      = {'Yes: participant was included in the analysis',...
                 'No: participant was excluded from the analysis'};
             % and re-write the json file
-            write_json([derivatives filesep 'participants.json'], participants_json);
+            ft_write_json([derivatives filesep 'participants.json'], participants_json);
         end
         if ~isfield(participants_json, 'excluded_trials')
             % the field does not yet exist, we create it
             participants_json.excluded_trials.description = 'number of rejected trials during analysis';
             % and re-write the json file
-            write_json([derivatives filesep 'participants.json'], participants_json);
+            ft_write_json([derivatives filesep 'participants.json'], participants_json);
         end
         
         % Secondly, we create an events tsv file containing begsample,
@@ -79,11 +79,11 @@ for ii=1:size(subjectlist,1)
             
             if exist([derivatives filesep sub filesep 'eeg' filesep sub '_badtrials.tsv'], 'file')
                 % The file already exists: we update it
-                write_tsv([derivatives filesep sub filesep 'eeg' filesep sub '_badtrials.tsv'], badtrials);
+                ft_write_tsv([derivatives filesep sub filesep 'eeg' filesep sub '_badtrials.tsv'], badtrials);
             else
                 % We have to make the folder and file
                 mkdir([derivatives filesep sub filesep 'eeg'])
-                write_tsv([derivatives filesep sub filesep 'eeg' filesep sub '_badtrials.tsv'], badtrials);
+                ft_write_tsv([derivatives filesep sub filesep 'eeg' filesep sub '_badtrials.tsv'], badtrials);
                 
                 % Then we also make a corresponding json file
                 badtrials_json.begsample.description       = 'Sample where event begins (measured from start of recording)';
@@ -95,7 +95,7 @@ for ii=1:size(subjectlist,1)
                     'Visual rejection 2: the last, fine-tuning rejection round'};
                 
                 % Then we write json file
-                write_json([derivatives filesep sub filesep 'eeg' filesep sub '_badtrials.json'], badtrials_json);
+                ft_write_json([derivatives filesep sub filesep 'eeg' filesep sub '_badtrials.json'], badtrials_json);
             end
         end
         
@@ -116,7 +116,7 @@ for ii=1:size(subjectlist,1)
         
         channels_folder         = dir([bidsroot filesep sub filesep 'eeg' filesep '*channels*.tsv']);
         channels_name           = [bidsroot filesep sub filesep 'eeg' filesep channels_folder.name];
-        channels_tsv            = read_tsv(channels_name);
+        channels_tsv            = ft_read_tsv(channels_name);
         
         % We add a status column to the channels tsv or replace the existing one
         % with rejected channels
@@ -126,7 +126,7 @@ for ii=1:size(subjectlist,1)
         channels_tsv.status     = status;
         
         % Then we update the current tsv file
-        write_tsv([derivatives filesep sub filesep 'eeg' filesep sub '_channels.tsv'], channels_tsv);
+        ft_write_tsv([derivatives filesep sub filesep 'eeg' filesep sub '_channels.tsv'], channels_tsv);
     else
         % do nothing
     end

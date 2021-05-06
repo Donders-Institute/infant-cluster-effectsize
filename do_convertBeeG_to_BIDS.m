@@ -1,5 +1,5 @@
 %% Conversion into BIDS. 
-% Infant EEG example dataset (Kayhan, E., Meyer, M., O’Reilly, J. X., Hunnius, S., & Bekkering, H. (2019). Nine-month-old infants update their predictive models of a changing environment. Developmental cognitive neuroscience, 38, 100680.)
+% Infant EEG example dataset (Kayhan, E., Meyer, M., Oï¿½Reilly, J. X., Hunnius, S., & Bekkering, H. (2019). Nine-month-old infants update their predictive models of a changing environment. Developmental cognitive neuroscience, 38, 100680.)
 % Referred to as script section 1
 
 %% 1.1 Specification of folders
@@ -163,7 +163,7 @@ for ii = 1:length(sub)
     foldername                                  = [bidsroot filesep 'sub-' cfg.sub filesep 'eeg'];
     filename                                    = [foldername filesep 'sub-' cfg.sub '_task-' cfg.TaskName '_events.json'];
 
-    write_json(filename, events_json);
+    ft_write_json(filename, events_json);
 
 
 end % Of subject loop
@@ -178,7 +178,7 @@ participants_json.sex.levels                    = {'girl: female', 'boy: male'};
 
 filename                                        = [bidsroot filesep 'participants.json'];
 
-write_json(filename, participants_json);
+ft_write_json(filename, participants_json);
 
 %% Add the matlab code used to generate BIDS to a subfolder
 
@@ -260,42 +260,6 @@ for i=1:numel(fn)
   y.(fn{i}) = x.(fn{i});
 end
 
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% SUBFUNCTION
-
-function write_json(filename, json)
-
-ft_info('writing ''%s''\n', filename);
-json = remove_empty(json);
-% json = sort_fields(json) % Let's leave this out so that the order will remain as we indicate it here in the code, not alphabetically ordered;
-json = ft_struct2char(json); % convert strings into char-arrays
-ft_hastoolbox('jsonlab', 1);
-% see also the output_compatible helper function
-% write nan as 'n/a'
-% write boolean as True/False
-str = savejson('', json, 'NaN', '"n/a"', 'ParseLogical', true);
-% fid = fopen_or_error(filename, 'w');
-fid = fopen(filename, 'w');
-fwrite(fid, str);
-fclose(fid);
-
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% SUBFUNCTION
-
-function write_tsv(filename, tsv)
-ft_info('writing ''%s''\n', filename);
-fn = tsv.Properties.VariableNames;
-for i=1:numel(fn)
-  % write [] as 'n/a'
-  % write nan as 'n/a'
-  % write boolean as 'True' or 'False'
-  tsv.(fn{i}) = output_compatible(tsv.(fn{i}));
-end
-writetable(tsv, filename, 'Delimiter', 'tab', 'FileType', 'text');
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
