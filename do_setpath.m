@@ -25,9 +25,9 @@ switch user
   case 'roboos'
     scripts     = '/Volumes/SamsungT3/data/di.dcc.DSC_2020.00134_473/scripts';
     sourcedata  = '/Volumes/SamsungT3/data/di.dcc.DSC_2020.00134_473/sourcedata';
-    bidsroot    = '/Volumes/SamsungT3/data/di.dcc.DSC_2020.00134_473/bids';
+    bidsroot    = '/Volumes/SamsungT3/data/di.dcc.DSC_2020.00134_473/bidsdata';
     results     = '/Volumes/SamsungT3/data/di.dcc.DSC_2020.00134_473/results';
-    derivatives = '/Volumes/SamsungT3/data/di.dcc.DSC_2020.00134_473/derivatives';
+    derivatives = '/Volumes/SamsungT3/data/di.dcc.DSC_2020.00134_473/bidsresults';
   case 'U567154'
     scripts     = '\\CNAS.RU.NL\U567154\Documents\Donders\S_ClusterBasedMethods\Analysis\BeeG-analysis';
     sourcedata  = '\\CNAS.RU.NL\U567154\Documents\Donders\S_ClusterBasedMethods\Analysis\Sourcedata';
