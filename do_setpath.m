@@ -1,29 +1,41 @@
+%% Set the path for these scripts and for the data, depending on who is executing the code
+%
+% These scripts and the data in BIDS format are part of Meyer, M., Lamers, D., Kayhan,
+% E., Hunnius, S., & Oostenveld, R. (2021) Fostering reproducibility in developmental
+% EEG research by using BIDS, cluster-based permutation tests and reporting
+% effectsizes (in preparation)
+%
+% The infant EEG dataset is originally described in Kayhan, E., Meyer, M., O'Reilly,
+% J. X., Hunnius, S., & Bekkering, H. (2019). Nine-month-old infants update their
+% predictive models of a changing environment. Developmental cognitive neuroscience,
+% 38, 100680.)
+
 user = getenv('USER');
 if isempty(user)
-    user = getenv('UserName');
+  user = getenv('UserName');
 end
 
 switch user
-    case 'Didi'
-        scripts     = 'C:\Users\Didi\Documents\GitHub\BeeG analysis';
-        sourcedata  = 'C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset';
-        bidsroot    = 'C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset\BIDS';
-        results     = 'C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset\results';
-        derivatives = 'C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset\derivatives';
-    case 'roboos'
-        scripts     = '/Volumes/Samsung T3/data/BeeG-analysis';
-        sourcedata  = '/Volumes/Samsung T3/data/di.dcc.DSC_2020.00134_473/sourcedata';
-        bidsroot    = '/Volumes/Samsung T3/data/di.dcc.DSC_2020.00134_473/bids';
-        results     = '/Volumes/Samsung T3/data/di.dcc.DSC_2020.00134_473/results';
-        derivatives = '/Volumes/Samsung T3/data/di.dcc.DSC_2020.00134_473/derivatives';
-    case 'U567154'
-        scripts     = '\\cnas.ru.nl\u567154\Documents\Donders\S_ClusterBasedMethods\Analysis\BeeG-analysis';
-        sourcedata  = '\\CNAS.RU.NL\U567154\Documents\Donders\S_ClusterBasedMethods\Analysis\Sourcedata';
-        bidsroot    = '\\CNAS.RU.NL\U567154\Documents\Donders\S_ClusterBasedMethods\Analysis\BIDS version 1';
-        results     = '\\cnas.ru.nl\u567154\Documents\Donders\S_ClusterBasedMethods\Analysis\BeeG dataset results';
-       %derivatives = '';
-    otherwise
-        error('directories for data could not be found');
+  case 'Didi'
+    scripts     = 'C:\Users\Didi\Documents\GitHub\BeeG analysis';
+    sourcedata  = 'C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset';
+    bidsroot    = 'C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset\BIDS';
+    results     = 'C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset\results';
+    derivatives = 'C:\Users\Didi\Documents\GitHub\Donders Datasets\BeeG dataset\derivatives';
+  case 'roboos'
+    scripts     = '/Volumes/SamsungT3/data/di.dcc.DSC_2020.00134_473/scripts';
+    sourcedata  = '/Volumes/SamsungT3/data/di.dcc.DSC_2020.00134_473/sourcedata';
+    bidsroot    = '/Volumes/SamsungT3/data/di.dcc.DSC_2020.00134_473/bidsdata';
+    results     = '/Volumes/SamsungT3/data/di.dcc.DSC_2020.00134_473/results';
+    derivatives = '/Volumes/SamsungT3/data/di.dcc.DSC_2020.00134_473/bidsresults';
+  case 'U567154'
+    scripts     = '\\CNAS.RU.NL\U567154\Documents\Donders\S_ClusterBasedMethods\Analysis\BeeG-analysis';
+    sourcedata  = '\\CNAS.RU.NL\U567154\Documents\Donders\S_ClusterBasedMethods\Analysis\Sourcedata';
+    bidsroot    = '\\CNAS.RU.NL\U567154\Documents\Donders\S_ClusterBasedMethods\Analysis\BIDS version 1';
+    results     = '\\CNAS.RU.NL\U567154\Documents\Donders\S_ClusterBasedMethods\Analysis\BeeG dataset results';
+    derivatives = '\\CNAS.RU.NL\U567154\Documents\Donders\S_ClusterBasedMethods\Analysis\Derivatives';
+  otherwise
+    error('The directories for the input and output data could not be found');
 end
 
 addpath(scripts)
