@@ -15,6 +15,7 @@ The MATLAB code should be executed as follows
 
 - do_setpath
 - do_convert_data_to_BIDS (only to be done once)
+- do_prepare_neighbours   (only to be done once)
 - do_complete_analysis, this will call
   - do_singlesubject_analysis for each subject
   - do_group_analysis
