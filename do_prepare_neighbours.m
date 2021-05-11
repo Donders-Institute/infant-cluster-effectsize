@@ -109,9 +109,9 @@ end
 
 if do_refinement
   % Add a line between two points that were missed by the previous step:
-  connect1    = find(strcmp(selected_elec.label, 'Fp1'));
-  connect2    = find(strcmp(selected_elec.label, 'Fp2'));
-  linepoints  = [selected_elec.chanpos(connect1, :); selected_elec.chanpos(connect2, :)];
+  connect1   = find(strcmp(selected_elec.label, 'Fp1'));
+  connect2   = find(strcmp(selected_elec.label, 'Fp2'));
+  linepoints = [selected_elec.chanpos(connect1, :); selected_elec.chanpos(connect2, :)];
   line(linepoints(:,1), linepoints(:,2), linepoints(:,3));
   
   % And add the connection to the neighours struct
@@ -122,11 +122,11 @@ if do_refinement
   % I.e. if Cz has FCz as a neighbour, then FCz should have Cz as a neighbour
   
   for ii = 1:length(selected_neighbours)
-    channel = selected_neighbours(ii).label;
-    for tt  = 1:length(selected_neighbours(ii).neighblabel)
+    channel_to_connect = selected_neighbours(ii).label;
+    for tt = 1:length(selected_neighbours(ii).neighblabel)
       idx = find(strcmp(label, selected_neighbours(ii).neighblabel{tt}));
-      if sum(strcmp(selected_neighbours(idx).neighblabel, channel))==0
-        selected_neighbours(idx).neighblabel = [selected_neighbours(idx).neighblabel, {channel}];
+      if sum(strcmp(selected_neighbours(idx).neighblabel, channel_to_connect))==0
+        selected_neighbours(idx).neighblabel = [selected_neighbours(idx).neighblabel, {channel_to_connect}];
       end
     end
   end
@@ -144,9 +144,9 @@ close all
 fig = ft_plot_sens(selected_elec, 'label', 'label');
 
 for ii = 1:length(selected_neighbours)
-  channel         = selected_neighbours(ii).label;
-  connect1         = find(strcmp(selected_elec.label, channel));
-  for tt          = 1:length(selected_neighbours(ii).neighblabel)
+  channel_to_connect  = selected_neighbours(ii).label;
+  connect1 = find(strcmp(selected_elec.label, channel_to_connect));
+  for tt = 1:length(selected_neighbours(ii).neighblabel)
     connect2    = find(strcmp(selected_elec.label, selected_neighbours(ii).neighblabel{tt}));
     linepoints  = [selected_elec.chanpos(connect1, :); selected_elec.chanpos(connect2, :)];
     line(linepoints(:,1), linepoints(:,2), linepoints(:,3));
