@@ -134,8 +134,8 @@ load(fullfile(output_dir, 'stat_standard_oddball_clusstats.mat'), 'stat_standard
 
 % Plot displaying t- and p-value distribution across channels and time
 plot_clus = zeros(size(stat_standard_oddball_clusstats.prob));
-plot_clus(stat_standard_oddball_clusstats.negclusterslabelmat ==1) = -1;
-plot_clus(stat_standard_oddball_clusstats.posclusterslabelmat ==1) = 1;
+plot_clus(stat_standard_oddball_clusstats.negclusterslabelmat==1) = -1; % negative cluster
+plot_clus(stat_standard_oddball_clusstats.posclusterslabelmat==1) =  1; % positive cluster
 
 figure
 subplot(2,1,1)
@@ -156,7 +156,7 @@ savefig(gcf, fullfile(output_dir, 'T_and_Pvalues_stat_standard_oddball_clusstats
 cfg                       = [];
 cfg.operation             = 'subtract';
 cfg.parameter             = 'avg';
-grandavg_diff_standard_oddball= ft_math(cfg, grandavg_standard, grandavg_oddball);
+grandavg_diff_standard_oddball = ft_math(cfg, grandavg_standard, grandavg_oddball);
 
 % Find clusters with a 5% two-sided cutoff based on the cluster p-values
 pos_cluster_pvals       = [stat_standard_oddball_clusstats.posclusters(:).prob];
@@ -182,22 +182,24 @@ m                       = [1:timestep*sampling_rate:sample_count]; % start of ea
 
 figure
 for k = 1:30
-  subplot(6,5,k);
-  cfg                 = [];
-  cfg.xlim            = [j(k) j(k+1)]; % current interval
-  cfg.zlim            = [-6 6]; % set minimum and maximum z-axis
-  pos_int             = zeros(numel(grandavg_diff_standard_oddball.label),1);
-  neg_int             = zeros(numel(grandavg_diff_standard_oddball.label),1);
-  pos_int(i1)         = all(pos(i2, m(k):m(k+1)),2); % determine which channels are in a cluster throughout the current time interval (pos cluster)
-  neg_int(i1)         = all(neg(i2, m(k):m(k+1)),2); % determine which channels are in a cluster throughout the current time interval (neg cluster)
   
-  cfg.highlight       = 'on';
-  cfg.highlightchannel= find(pos_int | neg_int); % highlight channels belonging to a cluster
-  cfg.highlightcolor  = [1 1 1]; % highlight marker color (default = [0 0 0] (black))
-  cfg.comment         = 'xlim';
-  cfg.commentpos      = 'title';
-  cfg.layout          =  'EEG1010.lay';
-  cfg.interactive     = 'no';
+  cfg                  = [];
+  cfg.figure           = subplot(6,5,k);
+  cfg.xlim             = [j(k) j(k+1)]; % current interval
+  cfg.zlim             = [-6 6]; % set minimum and maximum z-axis
+ 
+  pos_int              = zeros(numel(grandavg_diff_standard_oddball.label),1);
+  neg_int              = zeros(numel(grandavg_diff_standard_oddball.label),1);
+  pos_int(i1)          = all(pos(i2, m(k):m(k+1)),2); % determine which channels are in a cluster throughout the current time interval (pos cluster)
+  neg_int(i1)          = all(neg(i2, m(k):m(k+1)),2); % determine which channels are in a cluster throughout the current time interval (neg cluster)
+
+  cfg.highlight        = 'on';
+  cfg.highlightchannel = find(pos_int | neg_int); % highlight channels belonging to a cluster
+  cfg.highlightcolor   = [1 1 1]; % highlight marker color (default = [0 0 0] (black))
+  cfg.comment          = 'xlim';
+  cfg.commentpos       = 'title';
+  cfg.layout           =  'EEG1010.lay';
+  cfg.interactive      = 'no';
   ft_topoplotER(cfg, grandavg_diff_standard_oddball)
   colormap(jet)
 end
