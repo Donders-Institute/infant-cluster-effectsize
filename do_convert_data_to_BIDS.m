@@ -20,8 +20,7 @@ do_setpath
 
 cd(sourcedata)
 
-% Delete the current BIDS folder if it already exists to have create the
-% latest version
+% Delete the current BIDS folder if it already exists to have create the latest version
 if exist(bidsroot, 'dir')
   rmdir(bidsroot, 's');
 end
