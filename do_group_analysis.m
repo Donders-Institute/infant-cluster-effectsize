@@ -115,7 +115,7 @@ cfg.statistic             = 'ft_statfun_depsamplesT';
 cfg.alpha                 = 0.05;
 cfg.correctm              = 'cluster';
 cfg.correcttail           = 'prob';
-cfg.numrandomization      = 1024;
+cfg.numrandomization      = 10000;
 
 Nsub                      = length(subjectlist_new);
 cfg.design(1,1:2*Nsub)    = [ones(1,Nsub) 2*ones(1,Nsub)];
@@ -302,14 +302,14 @@ idx_time_min = min(Pos.col);
 idx_time_max = max(Pos.col);
 
 % Estimate rectangular window around this cluster
-rect_t_min = stat_standard_oddball_clusstats.time(Pos.col(idx_time_min));
-rect_t_max = stat_standard_oddball_clusstats.time(Pos.col(idx_time_max));
-rect_chan = stat_standard_oddball_clusstats.label(any(stat_standard_oddball_clusstats.mask(:,idx_time_min:idx_time_max),2));
+Pos.rect_t_min = stat_standard_oddball_clusstats.time(idx_time_min);
+Pos.rect_t_max = stat_standard_oddball_clusstats.time(idx_time_max);
+Pos.rect_chan = stat_standard_oddball_clusstats.label(any(stat_standard_oddball_clusstats.mask(:,idx_time_min:idx_time_max),2));
 
 % Calculate effect size (Cohen's d) withing this rectengular window
 cfg                     = [];
-cfg.channel             = rect_chan;
-cfg.latency             = [rect_t_min rect_t_max];
+cfg.channel             = Pos.rect_chan;
+cfg.latency             = [Pos.rect_t_min Pos.rect_t_max];
 cfg.avgoverchan         = 'yes';
 cfg.avgovertime         = 'yes';
 cfg.method              = 'analytic';
@@ -329,14 +329,14 @@ idx_time_min = min(Neg.col);
 idx_time_max = max(Neg.col);
 
 % Estimate rectangular window around this cluster
-rect_t_min = stat_standard_oddball_clusstats.time(Neg.col(idx_time_min));
-rect_t_max = stat_standard_oddball_clusstats.time(Neg.col(idx_time_max));
-rect_chan = stat_standard_oddball_clusstats.label(any(stat_standard_oddball_clusstats.mask(:,idx_time_min:idx_time_max),2));
+Neg.rect_t_min = stat_standard_oddball_clusstats.time(idx_time_min);
+Neg.rect_t_max = stat_standard_oddball_clusstats.time(idx_time_max);
+Neg.rect_chan = stat_standard_oddball_clusstats.label(any(stat_standard_oddball_clusstats.mask(:,idx_time_min:idx_time_max),2));
 
 % Calculate effect size (Cohen's d) withing this rectengular window
 cfg                     = [];
-cfg.channel             = rect_chan;
-cfg.latency             = [rect_t_min rect_t_max];
+cfg.channel             = Neg.rect_chan;
+cfg.latency             = [Neg.rect_t_min Neg.rect_t_max];
 cfg.avgoverchan         = 'yes';
 cfg.avgovertime         = 'yes';
 cfg.method              = 'analytic';
