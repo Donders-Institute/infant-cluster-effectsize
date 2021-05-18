@@ -29,11 +29,11 @@ switch user
     results     = '/Volumes/SamsungT3/data/di.dcc.DSC_2020.00134_473/results';
     derivatives = '/Volumes/SamsungT3/data/di.dcc.DSC_2020.00134_473/bidsresults';
   case 'U567154'
-    scripts     = '\\CNAS.RU.NL\U567154\Documents\Donders\S_ClusterBasedMethods\Analysis\BeeG-analysis';
-    sourcedata  = '\\CNAS.RU.NL\U567154\Documents\Donders\S_ClusterBasedMethods\Analysis\Sourcedata';
-    bidsroot    = '\\CNAS.RU.NL\U567154\Documents\Donders\S_ClusterBasedMethods\Analysis\BIDS version 1';
-    results     = '\\CNAS.RU.NL\U567154\Documents\Donders\S_ClusterBasedMethods\Analysis\BeeG dataset results';
-    derivatives = '\\CNAS.RU.NL\U567154\Documents\Donders\S_ClusterBasedMethods\Analysis\Derivatives';
+    scripts     = 'F:\Documents\Donders\S_ClusterBasedMethods\Analysis\BeeG-analysis';
+    sourcedata  = 'F:\Documents\Donders\S_ClusterBasedMethods\Analysis\Sourcedata';
+    bidsroot    = 'F:\Documents\Donders\S_ClusterBasedMethods\Analysis\BIDS version 1';
+    results     = 'F:\Documents\Donders\S_ClusterBasedMethods\Analysis\BeeG dataset results';
+    derivatives = 'F:\Documents\Donders\S_ClusterBasedMethods\Analysis\Derivatives';
   otherwise
     error('The directories for the input and output data could not be found');
 end
