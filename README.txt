@@ -11,7 +11,7 @@ predictive models of a changing environment. Developmental cognitive neuroscienc
 
 The raw EEG dataset is available from https://doi.org/10.34973/gvr3-6g88. 
 
-The processed EEG data (in MATLAB and BIDS format) is available from https://doi.org/10.34973/g4we-5v66 
+The processed EEG data (in MATLAB and BIDS format) is available from https://doi.org/10.34973/g4we-5v66. 
 
 The MATLAB code should be executed as follows
 
