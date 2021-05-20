@@ -33,7 +33,7 @@ switch user
     sourcedata  = 'F:\Documents\Donders\S_ClusterBasedMethods\Analysis\Sourcedata';
     bidsroot    = 'F:\Documents\Donders\S_ClusterBasedMethods\Analysis\BIDS version 1';
     results     = 'F:\Documents\Donders\S_ClusterBasedMethods\Analysis\BeeG dataset results';
-    derivatives = 'F:\Documents\Donders\S_ClusterBasedMethods\Analysis\Derivatives';
+    derivatives = 'F:\Documents\Donders\S_ClusterBasedMethods\Analysis\bidsresults';
   otherwise
     error('The directories for the input and output data could not be found');
 end

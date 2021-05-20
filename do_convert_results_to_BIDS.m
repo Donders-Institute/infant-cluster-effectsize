@@ -31,11 +31,13 @@ if ~exist(derivatives, 'dir')
 end
 
 %%
+% Read the subject info from the BIDS dataset
+t           = readtable([bidsroot filesep 'participants.tsv'], 'FileType', 'text');
+subjectlist = t.participant_id;
 
 % We find the excluded participants
-results_dir = fullfile(fileparts(bidsroot), 'results');
-if exist([results_dir filesep 'group' filesep 'excludedparticipants.mat'], 'file')
-  load([results_dir filesep 'group' filesep 'excludedparticipants.mat']);
+if exist([results filesep 'group' filesep 'excludedparticipants.mat'], 'file')
+  load([results filesep 'group' filesep 'excludedparticipants.mat']);
 else
   error('number of exluded participants could not be found');
 end
@@ -49,7 +51,7 @@ for ii=1:size(subjectlist,1)
   
   % and find the output dir that contains the stored badchannels and badtrials
   
-  output_dir = fullfile(fileparts(bidsroot), 'results', sub);
+  output_dir = [results filesep sub];
   % From here we load the badtrials and badchannels
   if exist([output_dir filesep 'badtrials.mat'], 'file')
     load([output_dir filesep 'badtrials.mat']);
@@ -147,3 +149,5 @@ for ii=1:size(subjectlist,1)
   end
   
 end % for all subjects
+
+
