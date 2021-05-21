@@ -28,7 +28,7 @@ switch user
     bidsroot    = '/Volumes/SamsungT3/data/di.dcc.DSC_2020.00134_473/bidsdata';
     results     = '/Volumes/SamsungT3/data/di.dcc.DSC_2020.00134_473/results';
     derivatives = '/Volumes/SamsungT3/data/di.dcc.DSC_2020.00134_473/bidsresults';
-  case 'U567154'
+  case 'Marlene'
     scripts     = 'F:\Documents\Donders\S_ClusterBasedMethods\Analysis\BeeG-analysis';
     sourcedata  = 'F:\Documents\Donders\S_ClusterBasedMethods\Analysis\Sourcedata';
     bidsroot    = 'F:\Documents\Donders\S_ClusterBasedMethods\Analysis\BIDS version 1';
