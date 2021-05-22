@@ -1,14 +1,14 @@
 %% Copy the rejected trials and rejected channels to BIDS
 %
 % These scripts and the data in BIDS format are part of Meyer, M., Lamers, D., Kayhan,
-% E., Hunnius, S., & Oostenveld, R. (2021) Fostering reproducibility in developmental
+% E., Hunnius, S., & Oostenveld, R. (2021). Enhancing reproducibility in developmental
 % EEG research by using BIDS, cluster-based permutation tests and reporting
-% effectsizes (in preparation)
+% effect sizes (in preparation).
 %
 % The infant EEG dataset is originally described in Kayhan, E., Meyer, M., O'Reilly,
 % J. X., Hunnius, S., & Bekkering, H. (2019). Nine-month-old infants update their
 % predictive models of a changing environment. Developmental cognitive neuroscience,
-% 38, 100680.)
+% 38, 100680. https://doi.org/10.1016/j.dcn.2019.100680
 %
 % This script should be run when the artefact rejection is complete. It will read the
 % resulting MATLAB .mat files that specify the rejected channels and trials. These
@@ -149,5 +149,3 @@ for ii=1:size(subjectlist,1)
   end
   
 end % for all subjects
-
-
