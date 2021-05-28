@@ -1,7 +1,6 @@
 These scripts and the data in BIDS format are part of Meyer, M., Lamers, D., Kayhan,
 E., Hunnius, S., & Oostenveld, R. (2021). Enhancing reproducibility in developmental
-EEG research by using BIDS, cluster-based permutation tests and reporting
-effect sizes (in preparation).
+EEG research: BIDS, cluster-based permutation tests, and effect sizes (in preparation).
 
 The infant EEG dataset is originally described in Kayhan, E., Meyer, M., O'Reilly,
 J. X., Hunnius, S., & Bekkering, H. (2019). Nine-month-old infants update their
