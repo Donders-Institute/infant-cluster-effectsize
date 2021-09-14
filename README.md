@@ -14,9 +14,11 @@ The processed EEG data (in MATLAB and BIDS format) will become available at http
 The MATLAB code should be executed as follows
 
 - do_setpath
-- do_convert_data_to_BIDS (only to be done once)
-- do_prepare_neighbours   (only to be done once)
+- do_convert_data_to_BIDS (only to be done once; The code in this script is referred to as Script Section 1 in the manuscript)
+- do_prepare_neighbours   (only to be done once; The code in this script is not meant to be executed as-is, but is provided for reference)
 - do_complete_analysis, this will call
-  - do_singlesubject_analysis for each subject
-  - do_group_analysis
+  - do_singlesubject_analysis for each subject (The code in this script is referred to as Script Section 2 in the manuscript)
+  - do_group_analysis (The code in this script is referred to as Script Section 3 in the manuscript)
 - do_convert_results_to_BIDS
+
+Note that the original source data referred to in the do_convert_data_to_BIDS file 
