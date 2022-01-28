@@ -7,9 +7,9 @@ J. X., Hunnius, S., & Bekkering, H. (2019). Nine-month-old infants update their
 predictive models of a changing environment. Developmental cognitive neuroscience,
 38, 100680, https://doi.org/10.1016/j.dcn.2019.100680.
 
-The raw EEG dataset will become available at https://doi.org/10.34973/gvr3-6g88 upon publication.
+The raw EEG dataset is available at https://doi.org/10.34973/gvr3-6g88.
 
-The processed EEG data (in MATLAB and BIDS format) will become available at https://doi.org/10.34973/g4we-5v66 upon publication.
+The processed EEG data (in MATLAB and BIDS format) is available at https://doi.org/10.34973/g4we-5v66.
 
 The MATLAB code should be executed as follows
 
